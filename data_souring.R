@@ -1,4 +1,4 @@
-library(XML)
+
 source("crawl_functions.R")
 ## csv파일 읽기, 데이터 정리 
 filelist <- list.files(path=getwd(), pattern=".csv")
@@ -34,4 +34,8 @@ for( i in 1:nrow(player_id) ) {
   rm(vec,name,temp)
 }
 
+## 타자용 추가변수 및 누적 데이터 계산
+## 신규 추가변수 
+# 장타율: SLG
 
+## 투수용 추가변수 및 누적 데이터 계산

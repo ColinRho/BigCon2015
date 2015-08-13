@@ -1,31 +1,6 @@
 ## package "XML" required  
 ## source() 로 이 페이지의 코드를 읽어올 때 한글이 출력될 때 Warning message
-
-## 최초에 웹페이지를 읽어오는 함수
-crawl.read <- function (row.player) {  
-  id <- row.player$id ; pos <- row.player$pos
-  if (pos == "p") { 
-    u <- "http://www.koreabaseball.com/Record/Player/PitcherDetail/Daily.aspx?playerId="
-  } else {
-    u <- "http://www.koreabaseball.com/Record/Player/HitterDetail/Daily.aspx?playerId="
-  }
-  url <- paste(u, id, "", sep="")
-  a <- readHTMLTable(url) # Table로 된 자료
-  # 선수 고유번호가 잘못 입력될 경우의 디버깅 용도 
-  b <- readHTMLList(url)
-  player <- b[[17]][1]
-  cat("Data set of",player,"is being read","\n") 
-  return(a)
-}
-## 크롤링 데이터를 data.frame으로 정리하는 함수
-crawl.mod <- function(a) {
-  for (i in 1:length(a)) {
-    a[[i]] <- as.matrix(a[[i]])
-  }
-  a <- do.call(rbind, a)
-  a <- as.data.frame(a)
-  return(a)
-}
+library(XML)
 ## numeric 변수로 변환하는 함수(input: 벡터)
 convert.numeric <- function ( x ) {
   return(as.numeric( as.character (x) ))
@@ -52,32 +27,89 @@ convert.IP <- function ( IP ) {
   }
   return(round(as.numeric(IP),3))
 }
+
+## 최초에 웹페이지를 읽어오는 함수
+crawl.read <- function (row.player) {  
+  id <- row.player$id ; pos <- row.player$pos
+  if (pos == "p") { 
+    u <- "http://www.koreabaseball.com/Record/Player/PitcherDetail/Daily.aspx?playerId="
+  } else {
+    u <- "http://www.koreabaseball.com/Record/Player/HitterDetail/Daily.aspx?playerId="
+  }
+  url <- paste(u, id, "", sep="")
+  a <- readHTMLTable(url) # Table로 된 자료
+  # 선수 고유번호가 잘못 입력될 경우의 디버깅 용도 
+  b <- readHTMLList(url)
+  player <- b[[17]][1]
+  cat("Data set of",player,"is being read","\n") 
+  return(a)
+}
+## 크롤링 데이터를 data.frame으로 정리하는 함수
+crawl.mod <- function(row.player) {
+  a <- crawl.read(row.player)
+  for (i in 1:length(a)) {
+    a[[i]] <- as.matrix(a[[i]])
+  }
+  a <- do.call(rbind, a)
+  a <- as.data.frame(a)
+  return(a)
+}
+## numeric 변환 및 누적 데이터 계산 함수(투수용)
+cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이어야 한다.
+  p <- ncol(dat)
+  # numeric으로 변환
+  dat$IP <- round(convert.IP(dat$IP), 3)
+  dat[,5:p] <- apply(dat[,5:p], 2, convert.numeric)
+  # 변수명 설정
+  colnames(dat)[1:4] <- c("date","vs","type","result") ; colnames(dat)[p] <- "ERA"
+  # 누적데이터 계산
+  for ( row.num in 2:nrow(dat) ) {
+    dat[row.num,5:(p-1)] <- dat[row.num,5:(p-1)] + dat[(row.num-1),5:(p-1)]
+  }
+  # 추가 지표 계산
+  WHIP <- (dat$H + dat$BB)/dat$IP # WHIP 이닝당 출루 허용
+  dat <- data.frame( dat, WHIP )
+  # 당일 ERA 제거
+  return(dat[,-5])
+}
+## numeric 변환 및 누적 데이터 계산 함수(타자용)
+cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이어야 한다.
+  p <- ncol(dat)
+  # numeric으로 변환
+  dat[,3:p] <- apply(dat[,3:p], 2, convert.numeric)
+  # 변수명 설정
+  colnames(dat)[1:2] <- c("date","vs") ; colnames(dat)[p] <- c("AVG")
+  # 누적 데이터 계산
+  for ( row.num in 2:nrow(dat) ) {
+    dat[row.num,3:(p-1)] <- dat[row.num,3:(p-1)] + dat[(row.num-1),3:(p-1)]
+  }
+  # 추가 지표 계산
+  SLG <- (dat$H + 2*dat$`2B` + 3*dat$`3B` + 4*dat$HR)/dat$AB # 장타율
+  OBP <- (dat$H + dat$BB + dat$HBP)/(dat$AB + dat$BB + dat$HBP) # 출루율, 원래는 분모에 SF(희생플라이) 도 더해줘야 함 
+  OPS <- SLG + OBP # OPS
+  dat <- round(data.frame( dat, SLG, OBP, OPS), 3)
+  # 당일 타율 제거
+  return(dat[,-3])
+}
 ## 최종 output생성 함수
 crawl.kbo <- function(row.player, write.as.csv=F) {
-  a <- crawl.read(row.player)
-  dat <- crawl.mod(a) # dat는 data.frame 형태로 변환된 자료
-    # 열의 개수를 이용하여 데이터가 없는 선수를 걸러냄(열의 개수가 1개면 데이터가 없는 것)
+  dat <- crawl.mod(row.player) # dat는 data.frame 형태로 변환된 자료
+  # 열의 개수를 이용하여 데이터가 없는 선수를 걸러냄(열의 개수가 1개면 데이터가 없는 것)
   if (ncol(dat) != 1) {
-    var.name <- colnames(dat)
-      # 투수/타자에 따라 변수명 설정 및 numeric으로 변환
-    if (row.player$pos == "p") { 
-      var.name[1:4] <- c("date", "vs", "type" ,"result")
-      dat$IP <- convert.IP(dat$IP)
-      dat[,5:ncol(dat)] <- apply(dat[,5:ncol(dat)], 2, convert.numeric)
-    }  else  { 
-      var.name[1:2] <- c("date", "vs")
-      dat[,3:ncol(dat)] <- apply(dat[,3:ncol(dat)], 2, convert.numeric)
-    }
-    colnames(dat) <- var.name
+    # 투수 변수명 설정 및 numeric으로 변환
+    if (row.player$pos == "p") { dat <- cal.pitcher(dat) }
+    # 타자인 경우
+    else  { dat <- cal.hitter(dat) }
     dat$date <- convert.numeric(dat$date)
     ret <- dat
-      # csv로 쓰는 것을 설정할 경우
-    if (write.as.csv) { write.csv( dat, file=paste(row.player$name,".csv"), row.names=F)  }
+    # csv로 쓰는 것을 설정할 경우
+    if (write.as.csv) { write.csv( ret, file=paste(row.player$name,".csv"), row.names=F)  }
   } else {
     ret <- NA  # 1군 데이터가 없는 선수
   }
   return( ret )
 }
+
 
 ## 결과값이 없는 경우 "---" 은 NA로 변환되는 Warning message 뜨지만 output은 괜찮다.
 
