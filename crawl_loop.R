@@ -5,11 +5,11 @@ source("crawl.R")
 for( i in 1:nrow(player_id) ) {
   vec <- player_id[i,] 
   name <- as.character(vec$name)
-  temp <- crawl(vec, F)
+  temp <- crawl.kbo(vec, F)
   if( is.na(temp) ) { 
-    cat(name," 선수의 데이터가 존재하지 않습니다.","\n") 
+    cat(name," has no data.","\n") 
   } else {
-    assign(name, temp) ; cat("데이터가", name,"(으)로 저장되었습니다.","\n")
+    assign(name, temp) ; cat("Data set is s aved as", name,"\n")
   }
   rm(vec,name,temp)
 }
@@ -18,11 +18,13 @@ for( i in 1:nrow(player_id) ) {
 for( i in 1:nrow(player_id) ) {
   vec <- player_id[i,] 
   name <- as.character(vec$name)
-  temp <- crawl(vec, T)
+  temp <- crawl.kbo(vec, T)
   if( is.na(temp) ) { 
-    cat(name," 선수의 데이터가 존재하지 않습니다.","\n") 
+    cat(name," has no data.","\n") 
   } else {
-    assign(name, temp) ; cat("데이터가", name,"(으)로 저장되었습니다.","\n")
+    assign(name, temp) ; cat("Data set is saved as", name,"\n")
   }
   rm(vec,name,temp)
 }
+
+
