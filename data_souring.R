@@ -7,12 +7,12 @@ DB <- lapply(filelist, read.csv, header=T)  # 통합된 데이터, list
 for ( i in 1:length(filename)) {
   assign(filename[i], DB[[i]])  # 각 파일명 matrix로 할당
 }
+## crawling 루프
+crawl.loop ( file = player_id, write.as.csv=F)
 
 x <- crawl.kbo(player_id[2,]) # 투수예제
 y <- crawl.kbo(player_id[53,]) # 타자 예제
 
-## crawling 루프
-crawl.loop ( file = player_id, write.as.csv=F)
 
 
 

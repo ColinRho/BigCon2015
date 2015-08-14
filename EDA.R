@@ -1,6 +1,5 @@
 rm(list=ls())
 
-
 ## 연도별 데이터 추출 함수
 yearly <- function( x, year ) { 
   ret <- list()
