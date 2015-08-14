@@ -27,7 +27,6 @@ convert.IP <- function ( IP ) {
   }
   return(round(as.numeric(IP),3))
 }
-
 ## 최초에 웹페이지를 읽어오는 함수
 crawl.read <- function (row.player) {  
   id <- row.player$id ; pos <- row.player$pos
@@ -112,22 +111,18 @@ crawl.kbo <- function(row.player, write.as.csv=F) {
 }
 ## 파일 읽어오기 루프 함수
 crawl.loop <- function(file=player_id, team=NULL, pos=NULL, write.as.csv=F) {
-  
   if ( !is.null(team) ) { file <- file[file$team == team,]  }
   if ( !is.null(pos) ) { file <- file[file$pos == pos,] }
-  
   for( i in 1:nrow(file) ) {
     vec <- file[i,] 
     name <- as.character(vec$name)
     temp <- crawl.kbo(vec, write.as.csv)
-    if( is.na(temp) ) { 
+    if( !is.data.frame(temp) ) { 
       cat(name," has no data.","\n") 
     } else {
-      assign(name, temp) ; cat("Data set is saved as", name,"\n")
+      assign(name, temp, envir=.GlobalEnv) ; cat("Data set is saved as", name,"\n")
     }
-    rm(vec,name,temp)
   }
-
 }
 
 
