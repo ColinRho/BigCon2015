@@ -62,8 +62,10 @@ cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   # 변수명 설정
   colnames(dat)[1:4] <- c("date","vs","type","result") ; colnames(dat)[p] <- "ERA"
   # 누적데이터 계산
-  for ( row.num in 2:nrow(dat) ) {
-    dat[row.num,5:(p-1)] <- dat[row.num,5:(p-1)] + dat[(row.num-1),5:(p-1)]
+  if ( nrow(dat) != 1){
+    for ( row.num in 2:nrow(dat) ) {
+      dat[row.num,5:(p-1)] <- dat[row.num,5:(p-1)] + dat[(row.num-1),5:(p-1)]
+    }  
   }
   # 추가 지표 계산
   WHIP <- round( (dat$H + dat$BB)/dat$IP, 3) # WHIP 이닝당 출루 허용
@@ -79,8 +81,10 @@ cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   # 변수명 설정
   colnames(dat)[1:2] <- c("date","vs") ; colnames(dat)[p] <- "AVG"
   # 누적 데이터 계산
-  for ( row.num in 2:nrow(dat) ) {
-    dat[row.num,3:(p-1)] <- dat[row.num,3:(p-1)] + dat[(row.num-1),3:(p-1)]
+  if( nrow(dat) != 1) {
+    for ( row.num in 2:nrow(dat) ) {
+      dat[row.num,3:(p-1)] <- dat[row.num,3:(p-1)] + dat[(row.num-1),3:(p-1)]
+    }
   }
   # 추가 지표 계산
   SLG <- (dat$H + 2*dat$`2B` + 3*dat$`3B` + 4*dat$HR)/dat$AB # 장타율
