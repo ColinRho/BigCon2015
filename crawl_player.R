@@ -100,7 +100,7 @@ crawl.kbo <- function(row.player, write.as.csv=F) {
     if (row.player$pos == "p") { dat <- cal.pitcher(dat) }
     # 타자인 경우
     else  { dat <- cal.hitter(dat) }
-    dat$date <- convert.numeric(dat$date)
+    dat$date <- as.Date( gsub(".","/", dat$date,fixed=T), format="%m/%d")
     ret <- dat
     # csv로 쓰는 것을 설정할 경우
     if (write.as.csv) { write.csv( ret, file=paste(row.player$name,".csv"), row.names=F)  }
