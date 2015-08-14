@@ -1,4 +1,4 @@
-
+## 함수 파일 불러오기
 source("crawl_functions.R")
 ## csv파일 읽기, 데이터 정리 
 filelist <- list.files(path=getwd(), pattern=".csv")
@@ -8,34 +8,13 @@ for ( i in 1:length(filename)) {
   assign(filename[i], DB[[i]])  # 각 파일명 matrix로 할당
 }
 
+x <- crawl.kbo(player_id[2,]) # 투수예제
+y <- crawl.kbo(player_id[53,]) # 타자 예제
+
 ## crawling 루프
-for( i in 1:nrow(player_id) ) {
-  vec <- player_id[i,] 
-  name <- as.character(vec$name)
-  temp <- crawl.kbo(vec, F)
-  if( is.na(temp) ) { 
-    cat(name," has no data.","\n") 
-  } else {
-    assign(name, temp) ; cat("Data set is s aved as", name,"\n")
-  }
-  rm(vec,name,temp)
-}
+crawl.loop ( file = player_id, write.as.csv=F)
 
-## 루프 (csv 저장용)
-for( i in 1:nrow(player_id) ) {
-  vec <- player_id[i,] 
-  name <- as.character(vec$name)
-  temp <- crawl.kbo(vec, T)
-  if( is.na(temp) ) { 
-    cat(name," has no data.","\n") 
-  } else {
-    assign(name, temp) ; cat("Data set is saved as", name,"\n")
-  }
-  rm(vec,name,temp)
-}
 
-## 타자용 추가변수 및 누적 데이터 계산
-## 신규 추가변수 
-# 장타율: SLG
 
-## 투수용 추가변수 및 누적 데이터 계산
+
+

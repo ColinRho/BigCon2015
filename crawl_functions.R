@@ -67,7 +67,7 @@ cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
     dat[row.num,5:(p-1)] <- dat[row.num,5:(p-1)] + dat[(row.num-1),5:(p-1)]
   }
   # 추가 지표 계산
-  WHIP <- (dat$H + dat$BB)/dat$IP # WHIP 이닝당 출루 허용
+  WHIP <- round( (dat$H + dat$BB)/dat$IP, 3) # WHIP 이닝당 출루 허용
   dat <- data.frame( dat, WHIP )
   # 당일 ERA 제거
   return(dat[,-5])
@@ -78,7 +78,7 @@ cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   # numeric으로 변환
   dat[,3:p] <- apply(dat[,3:p], 2, convert.numeric)
   # 변수명 설정
-  colnames(dat)[1:2] <- c("date","vs") ; colnames(dat)[p] <- c("AVG")
+  colnames(dat)[1:2] <- c("date","vs") ; colnames(dat)[p] <- "AVG"
   # 누적 데이터 계산
   for ( row.num in 2:nrow(dat) ) {
     dat[row.num,3:(p-1)] <- dat[row.num,3:(p-1)] + dat[(row.num-1),3:(p-1)]
@@ -87,11 +87,12 @@ cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   SLG <- (dat$H + 2*dat$`2B` + 3*dat$`3B` + 4*dat$HR)/dat$AB # 장타율
   OBP <- (dat$H + dat$BB + dat$HBP)/(dat$AB + dat$BB + dat$HBP) # 출루율, 원래는 분모에 SF(희생플라이) 도 더해줘야 함 
   OPS <- SLG + OBP # OPS
-  dat <- round(data.frame( dat, SLG, OBP, OPS), 3)
+  SLG <- round(SLG, 3) ; OBP <- round(OBP, 3) ; OPS <- round(OPS, 3)
+  dat <- data.frame (dat, SLG, OBP, OPS)
   # 당일 타율 제거
   return(dat[,-3])
 }
-## 최종 output생성 함수
+## output 형태 생성 함수
 crawl.kbo <- function(row.player, write.as.csv=F) {
   dat <- crawl.mod(row.player) # dat는 data.frame 형태로 변환된 자료
   # 열의 개수를 이용하여 데이터가 없는 선수를 걸러냄(열의 개수가 1개면 데이터가 없는 것)
@@ -109,9 +110,25 @@ crawl.kbo <- function(row.player, write.as.csv=F) {
   }
   return( ret )
 }
+## 파일 읽어오기 루프 함수
+crawl.loop <- function(file=player_id, team=NULL, pos=NULL, write.as.csv=F) {
+  
+  if ( !is.null(team) ) { file <- file[file$team == team,]  }
+  if ( !is.null(pos) ) { file <- file[file$pos == pos,] }
+  
+  for( i in 1:nrow(file) ) {
+    vec <- file[i,] 
+    name <- as.character(vec$name)
+    temp <- crawl.kbo(vec, write.as.csv)
+    if( is.na(temp) ) { 
+      cat(name," has no data.","\n") 
+    } else {
+      assign(name, temp) ; cat("Data set is s aved as", name,"\n")
+    }
+    rm(vec,name,temp)
+  }
+}
+
 
 
 ## 결과값이 없는 경우 "---" 은 NA로 변환되는 Warning message 뜨지만 output은 괜찮다.
-
-x <- crawl.kbo(player_id[2,]) # 투수예제
-y <- crawl.kbo(player_id[53,]) # 타자 예제
