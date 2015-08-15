@@ -7,8 +7,11 @@ DB <- lapply(filelist, read.csv, header=T)  # 통합된 데이터, list
 for ( i in 1:length(filename)) {
   assign(filename[i], DB[[i]])  # 각 파일명 matrix로 할당
 }
+
 ## crawling 루프
 crawl.loop ( file = player_id, write.as.csv=F)
+
+
 
 ## 2014년도 개인 데이터
 pitcher_2014 <- subset(pitcher_kor_modify, YEAR == 2014)

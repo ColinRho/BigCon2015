@@ -9,6 +9,3 @@ yearly <- function( x, year ) {
   return (ret )
 }
 
-
-
-
