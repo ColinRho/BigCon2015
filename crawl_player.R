@@ -28,6 +28,7 @@ convert.IP <- function ( IP ) {
   return(round(as.numeric(IP),3))
 }
 ## 최초에 웹페이지를 읽어오는 함수
+# http://www.koreabaseball.com/Record/Player/PitcherDetail/Daily.aspx?playerId=75852
 crawl.read <- function (row.player) {  
   id <- row.player$id ; pos <- row.player$pos
   if (pos == "p") { 
@@ -96,7 +97,7 @@ cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   return(dat[,-3])
 }
 ## output 형태 생성 함수
-crawl.kbo <- function(row.player, write.as.csv=F) {
+crawl.kbo <- function(row.player, write.as.csv=F, year="2015") { # 나중에 다른연도 필요할 수도...
   dat <- crawl.mod(row.player) # dat는 data.frame 형태로 변환된 자료
   # 열의 개수를 이용하여 데이터가 없는 선수를 걸러냄(열의 개수가 1개면 데이터가 없는 것)
   if (ncol(dat) != 1) {
@@ -104,14 +105,14 @@ crawl.kbo <- function(row.player, write.as.csv=F) {
     if (row.player$pos == "p") { dat <- cal.pitcher(dat) }
     # 타자인 경우
     else  { dat <- cal.hitter(dat) }
-    dat$date <- as.Date( gsub(".","/", dat$date,fixed=T), format="%m/%d")
-    ret <- dat
+    dat$date <- as.Date( gsub(".","", dat$date,fixed=T), format="%m%d")
+    res <- dat
     # csv로 쓰는 것을 설정할 경우
     if (write.as.csv) { write.csv( ret, file=paste(row.player$name,".csv"), row.names=F)  }
   } else {
-    ret <- NA  # 1군 데이터가 없는 선수
+    res <- NA  # 1군 데이터가 없는 선수
   }
-  return( ret )
+  return( res )
 }
 ## 파일 읽어오기 루프 함수
 crawl.loop <- function(file=player_id, team=NULL, pos=NULL, write.as.csv=F) {
@@ -132,3 +133,4 @@ crawl.loop <- function(file=player_id, team=NULL, pos=NULL, write.as.csv=F) {
 
 
 ## 결과값이 없는 경우 "---" 은 NA로 변환되는 Warning message 뜨지만 output은 괜찮다.
+
