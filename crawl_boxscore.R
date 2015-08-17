@@ -1,3 +1,4 @@
+## package "XML", "rvest" required  
 library(XML) 
 library(rvest)
 
@@ -5,27 +6,36 @@ library(rvest)
 ## http://sports.news.naver.com/schedule/index.nhn?uCategory=&category=kbo&year=2015&month=07&teamCode=&date=20150816
 ## naver페이지 크롤링에서 경기 매치업과 스코어 벡터를 생성하는 함수
 gamelist.match <- function ( matchup ) { # 한 경기씩
-  # 경기를 치른 팀(홈, 어웨이), KIA만 글자가 3개인 팀이라 따로 지정
-  away <- substr(matchup, 1,2) ;  home <- substr(matchup, nchar(matchup)-1,nchar(matchup))
-  away <- gsub("KI", "KIA", away) ; home <- gsub("IA","KIA", home) 
   # 어웨이와 홈을 구분
   s <- unlist( strsplit( matchup, split=":") )
+  s <- gsub(pattern="\t|\n|\r","",s)
   # 취소된 경우(":"로 나뉘지 않으면 경기가 치러지지 않은 것)
-  if (length(s)==1) { score <- NA }
+  if (length(s)==1) { 
+    score <- NA
+    away <- unlist( strsplit(s, "VS") )[1] ; home <- unlist( strsplit(s, "VS") )[2]
+  }
   else {
     num <- gsub("\\D","", s)
     # 스코어
     score <- paste( num[1], num[2], sep=":")
+    away <- gsub("\\d","",s)[1] ; home <- gsub("\\d","",s)[2]
   }
   mat <- data.frame(away, home, score)
   return(mat)
+}
+## naver페이지 크롤링에서 날짜 폼을 만드는 함수
+date.trans <- function( x, year ) { # b[1,1]을 인풋으로
+  md <- unlist(strsplit(x," "))[1]
+  # 연도 결합
+  ymd <- paste(year,md,sep="") 
+  date <- as.Date( gsub(".","/", ymd, fixed=T), format="%Y%m/%d")
+  return(date)
 }
 ## 각 경기마다 크롤링된 html을 적절한 행렬로 조작하는 함수
 gamelist.mod <- function ( b, year="2015" ) { # b 는 각 경기의 행렬
   n <- nrow(b)
   # 경기일
-  date <- rep(b[1,1],nrow(b)) ;  date <- paste(year,substr(date, 1, 4),sep="") ; 
-  date <- as.Date( gsub(".","/", date, fixed=T), format="%Y%m/%d")
+  date <- rep(date.trans(b[1,1], year), n)
   # 경기 시작시간, 매치업, 경기장
   # 우취로 인한 추가편성 등으로 하루에 경기가 하나뿐인 경우를 고려
   if ( nrow(b) == 1 ) {
@@ -43,10 +53,13 @@ gamelist.mod <- function ( b, year="2015" ) { # b 는 각 경기의 행렬
   mat <- data.frame( date, time, match, stadium )
   return(mat)
 }
-# 네이버 검색결과를 통해 각 해의 개막일을 추출
-opening.day <- function ( year="2015" ) {
-  baseurl <- c("http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=","+프로야구")
-  url <- paste( baseurl[1], year, baseurl[2], sep="")
+# 네이버 검색결과를 통해 각 해의 개막일을 추출(포스트 시즌 추가)
+opening.day <- function ( year="2015", post.season=F ) {
+  preurl <- "http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query="
+  # 포스트 시즌이 시작되는 날짜
+  if ( post.season ) { posturl <- "프로야구+포스트시즌" }
+  else { posturl <- "프로야구" }
+  url <- paste( preurl, year, posturl, sep="")
   # html 스크립트와 개막일 정보가 있는 node
   script <- html(url)
   node <- html_nodes(script, "dd")[[5]]
@@ -67,19 +80,21 @@ gamelist.monthly <- function ( month="08", year ="2015" ) {
   # list의 범위중 맨처음과 끝은 열이름(data아님)
   for ( i in 2:(length(a)-1) ) {
     temp <- as.matrix(a[[i]])
-    if (ncol(temp) == 7) {
+    # 경기가 없는날은 제외
+    if (ncol(temp) > 3) {
       temp <- gamelist.mod( temp , year)
       l <- c(l, list(temp))
     }
   }
   # list를 행렬로 만들고, 개막일부터 오늘 이전까지의 자료만
   open <- opening.day(year)
-  l <- do.call(rbind,l) ; l <- subset(l, date < Sys.Date() & date > open)
+  l <- do.call(rbind,l) ; l <- subset(l, date < Sys.Date() & date >= open)
   return(l)
 }
 ## 최종 결과출력 함수 (Months 벡터가 input으로 들어가야 함)
 gamelist.total <- function( month, year="2015" ) { 
   l <- list()
+  # month가 크기 2이상의 벡터인 경우
   for (i in 1:length(month)) {
     l <- c(l, list(gamelist.monthly( month[i], year )) )
   }
@@ -87,9 +102,10 @@ gamelist.total <- function( month, year="2015" ) {
   return(boxscore)
 }
 
- ## 각 매치업의 승패 및 스코어와 선발 라인업을 불러오는 단계
-##"http://www.koreabaseball.com/Schedule/Game/BoxScore.aspx?leagueId=1&seriesId=0&gameId=20150801LGSK0&gyear=2015"
 
+
+## 각 매치업의 선발 라인업을 불러오는 단계
+## http://www.koreabaseball.com/Schedule/Game/BoxScore.aspx?leagueId=1&seriesId=0&gameId=20150801LGSK0&gyear=2015
 
 ## kbo의 url에 맞게 팀 코드를 바꾸는 함수
 team.code <- function ( x ) { # x: single character
@@ -100,13 +116,16 @@ team.code <- function ( x ) { # x: single character
   else if ( x == "두산") { y <- "OB"}
   else if ( x == "kt") { y <- "KT"}
   else if ( x == "KIA" ) { y <- "HT"}
+  # 올스타전
+  else if ( x == "웨스턴"| x=="나눔") { y <- "WE"}
+  else if ( x == "이스턴"| x=="드림") { y <- "EA"}
   # no change for LG, NC, SK
   else y <- x
   return(y)
 }
 ## 각 게임의 kbo BOXSCORE url을 생성하는 함수
-game.url <- function( row.boxscore ) {
-  vec <- row.boxscore
+game.url <- function( row.game ) {
+  vec <- row.game
   if (vec$stadium == "취소") { return(NA) }
   # 경기 날짜와 연도
   date <- format(vec$date, "%Y%m%d") ; year <- format(vec$date, "%Y")
@@ -114,8 +133,16 @@ game.url <- function( row.boxscore ) {
   away <- team.code(vec$away) ; home <- team.code(vec$home)
   index <- paste(date,away,home,sep="")
   # kbo BoxScore url
-  baseurl <- c("http://www.koreabaseball.com/Schedule/Game/BoxScore.aspx?leagueId=1&seriesId=0&gameId=","0&gyear=")
-  url <- paste(baseurl[1],index,baseurl[2],year,sep="")
+  baseurl <- c("http://www.koreabaseball.com/Schedule/Game/BoxScore.aspx?leagueId=1&seriesId=","&gameId=","0&gyear=")
+  # 포스트 시즌 날짜를 구분
+  pday <- opening.day( year, T)
+  # 시리즈코드 정규, 포스트시즌, 올스타전
+  if ( vec$date >= pday+15 & !is.na(pday) ) { seriesid <- 7 } # 한국시리즈 (포스트시즌 시작일 기준 15일 후)
+  else if ( vec$date >= pday+7 & !is.na(pday) ) { seriesid <- 5 } # 플레이오프 (포스트시즌 시작일 기준 7일 후)
+  else if ( vec$date >= pday & !is.na(pday) ) { seriesid <- 3 } # 준플레이오프
+  else if ( away == "EA" | away == "WE" ) { seriesid <- 9 }
+  else { seriesid <- 0 }
+  url <- paste(baseurl[1], seriesid, baseurl[2], index,baseurl[3],year,sep="")
   return(url)
 }
 ## 각 경기 페이지에서 선발타자를 추출하는 함수
@@ -163,10 +190,12 @@ lineup.each <- function( row.game ) {
   return(mat)
 }
 ## Gamelist가 주어졌을때 최종 라인업을 출력
-lineup.total <- function( x ) { # x gamelist여야함
+lineup.total <- function( x, by.month=NULL ) { # x gamelist여야함, 월별로 출력하려면 by.month="05" 등
   l <- list()
   # 취소되었던 경기는 제외
   x <- subset(x, !is.na(score))
+  # 월별로 출력할 경우
+  if ( !is.null(by.month) ) x <- subset(x, format(date, "%m") == by.month )
   for (i in 1:nrow(x)) {
     l <- c(l, list(lineup.each( x[i,] )) )
   }
@@ -174,5 +203,5 @@ lineup.total <- function( x ) { # x gamelist여야함
   return(lineup)
 }
 
-lineup.total( gamelist[100:nrow(gamelist),] )
+
 

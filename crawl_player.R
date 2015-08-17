@@ -1,6 +1,6 @@
 ## package "XML" required  
-## source() 로 이 페이지의 코드를 읽어올 때 한글이 출력될 때 Warning message
 library(XML)
+
 ## numeric 변수로 변환하는 함수(input: 벡터)
 convert.numeric <- function ( x ) {
   return(as.numeric( as.character (x) ))
