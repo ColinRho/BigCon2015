@@ -1,6 +1,6 @@
 
 
-game <- gamelist[151,]
+game <- gamelist[152,]
 
 ## 각 경기의 양팀 라인업을 불러오는 함수
 get.lineup <- function( match, lineup ) { # match 는 gamelist의 한 row벡터
