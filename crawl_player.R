@@ -1,5 +1,4 @@
-## package "XML" required  
-library(XML)
+## package "XML", "data.table" required  
 
 ## numeric 변수로 변환하는 함수(input: 벡터)
 convert.numeric <- function ( x ) {
@@ -48,11 +47,10 @@ crawl.read <- function (row.player) {
 crawl.mod <- function(row.player) {
   a <- crawl.read(row.player)
   for (i in 1:length(a)) {
-    a[[i]] <- as.matrix(a[[i]])
+    a[[i]] <- as.data.frame(a[[i]])
   }
-  a <- do.call(rbind, a)
-  a <- as.data.frame(a)
-  return(a)
+  a <- rbindlist(a)
+  return(as.data.frame(a))
 }
 ## numeric 변환 및 누적 데이터 계산 함수(투수용)
 cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이어야 한다.

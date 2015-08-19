@@ -1,6 +1,4 @@
-## package "XML", "rvest" required  
-library(XML) 
-library(rvest)
+## package "XML", "rvest", "data.table" required  
 
 ## 전체 매치업을 불러오는 단계
 ## http://sports.news.naver.com/schedule/index.nhn?uCategory=&category=kbo&year=2015&month=07&teamCode=&date=20150816
@@ -88,8 +86,8 @@ gamelist.monthly <- function ( month="08", year ="2015" ) {
   }
   # list를 행렬로 만들고, 개막일부터 오늘 이전까지의 자료만
   open <- opening.day(year)
-  l <- do.call(rbind,l) ; l <- subset(l, date < Sys.Date() & date >= open)
-  return(l)
+  l <- rbindlist(l) ; l <- subset(l, date < Sys.Date() & date >= open)
+  return(as.data.frame(l))
 }
 ## 최종 결과출력 함수 (Months 벡터가 input으로 들어가야 함)
 gamelist.total <- function( month, year="2015" ) { 
@@ -98,8 +96,8 @@ gamelist.total <- function( month, year="2015" ) {
   for (i in 1:length(month)) {
     l <- c(l, list(gamelist.monthly( month[i], year )) )
   }
-  boxscore <- do.call(rbind, l)
-  return(boxscore)
+  boxscore <- rbindlist(l)
+  return(as.data.frame(boxscore))
 }
 
 
@@ -148,11 +146,22 @@ game.url <- function( row.game ) {
 ## 각 경기 페이지에서 선발타자를 추출하는 함수
 lineup.hitter <- function( a ) { # a는 crawl된 행렬중 3번 4번행렬(타자정보)
   # 타순과 이름만 정렬
-  l <- a[,c(1,3)]
+  l <- a[,c(1,2,3)]
   # 각 타순번호의 첫번째 선수를 선발라인업으로
   l <- l[!duplicated(l[,1]),]
-  lineup <- as.vector(l[,2])
+  lineup <- data.frame( pos=substr(l[,2],1,1) ,name=l[,3], stringsAsFactors = F)
   return(lineup)
+}
+## 이병규 처리용 함수
+byungkyu <- function ( x ){
+  # x 는 hitter_list
+  out <- c("좌","중","우")
+  
+  for ( i in 1:nrow(x) ) {
+    if (x[i,]$pos %in% out & x[i,]$name == "이병규") { x[i,]$name <- "이병규Y" }
+    if (x[i,]$pos == "지" & x[i,]$name == "이병규") { x[i,]$name <- "이병규O" }
+  }
+  return(x)
 }
 ## 각 경기의 선발명단을 추출하는 함수
 lineup.each <- function( row.game ) {
@@ -170,6 +179,8 @@ lineup.each <- function( row.game ) {
   ## 4: 홈 타자 라인업
   ## 5: 어웨이 투수 
   ## 6: 홈 투수
+  away_team <- as.character(vec$away) ; home_team <- as.character(vec$home)
+  
   # 원정팀 선발투수
   away_start <- as.vector( a[[5]][1,1] )  
   # 홈팀 선발투수
@@ -178,10 +189,12 @@ lineup.each <- function( row.game ) {
   away_hitter <- lineup.hitter(a[[3]])
   # 홈팀 선발타선
   home_hitter <- lineup.hitter(a[[4]])
+  # 이병규 해결
+  if ( away_team == "LG") { away_hitter <- byungkyu(away_hitter) }
+  if ( home_team == "LG") { home_hitter <- byungkyu(home_hitter) } 
   # 원정/홈팀의 라인업 정리
-  away_team <- as.character(vec$away) ; home_team <- as.character(vec$home)
-  away <- c(away_team , away_start, away_hitter)
-  home <- c(home_team , home_start, home_hitter)
+  away <- c(away_team , away_start, away_hitter$name)
+  home <- c(home_team , home_start, home_hitter$name)
   # 결과행렬(날짜, 팀명, 선발투수, 선발라인업)
   mat <- t(data.frame(away, home))
   colnames(mat) <- c("team", "start_pitcher",1:9)
@@ -199,9 +212,7 @@ lineup.total <- function( x, by.month=NULL ) { # x gamelist여야함, 월별로 
   for (i in 1:nrow(x)) {
     l <- c(l, list(lineup.each( x[i,] )) )
   }
-  lineup <- do.call(rbind, l)
+  lineup <- rbindlist(l)
   return(lineup)
 }
-
-
 
