@@ -156,11 +156,18 @@ lineup.hitter <- function( a ) { # a는 crawl된 행렬중 3번 4번행렬(타�
 byungkyu <- function ( x ){
   # x 는 hitter_list
   out <- c("좌","중","우")
-  
-  for ( i in 1:nrow(x) ) {
-    if (x[i,]$pos %in% out & x[i,]$name == "이병규") { x[i,]$name <- "이병규Y" }
-    if (x[i,]$pos == "지" & x[i,]$name == "이병규") { x[i,]$name <- "이병규O" }
+  num <- which(x$name == "이병규")
+  bk <- x[num,]
+  if (nrow(bk) == 0) return(x)
+  else {
+    bk$name[which(bk$pos %in% out)] <- "이병규Y"
+    bk$name[which(bk$pos == "지")] <- "이병규O"
+    if (nrow(bk) == 2 & bk$name[1] == bk$name[2]) {
+      bk$name[2] <- "이병규O"
+    }
+    x$name[num] <- bk$name
   }
+  
   return(x)
 }
 ## 각 경기의 선발명단을 추출하는 함수
@@ -213,6 +220,6 @@ lineup.total <- function( x, by.month=NULL ) { # x gamelist여야함, 월별로 
     l <- c(l, list(lineup.each( x[i,] )) )
   }
   lineup <- rbindlist(l)
-  return(lineup)
+  return(as.data.frame(lineup))
 }
 

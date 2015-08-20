@@ -25,12 +25,11 @@ gamelist <- gamelist.total ( month, year = "2015" ) # 경기목록
 
 ## 4. crawling 루프(선수 개인별 데이터)
 crawl.loop ( file = player_id, write.as.csv=F)
-crawl.loop ( file = player_id, write.as.csv=F, team="삼성")
 
 ## 5. 경기목록의 모든 경기의 라인업
 #### 주의: 매 경기마다 페이지를 크롤링해오기 때문에 시간이 꽤 소요됨(네트워크환경이 좋은상태를 권장)
 #### 혹은 월별로 
-lineup1 <- lineup.total(gamelist)  
+lineup <- lineup.total(gamelist)  
 # as csv 
 write.csv(lineup, "lineup.csv", row.names=F)
 

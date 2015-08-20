@@ -83,4 +83,3 @@ get.player.stat <- function ( match, lineup, samename ) {
 }
 
 
-

@@ -60,6 +60,8 @@ cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   dat[,5:p] <- apply(dat[,5:p], 2, convert.numeric)
   # 변수명 설정
   colnames(dat)[1:4] <- c("date","vs","type","result") ; colnames(dat)[p] <- "ERA"
+  colnames(dat)[8:12] <- c("HA","HRA","BBA","HBPA","SOA") #서희추가
+  
   # 누적데이터 계산
   if ( nrow(dat) != 1){
     for ( row.num in 2:nrow(dat) ) {
@@ -67,8 +69,11 @@ cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
     }  
   }
   # 추가 지표 계산
-  WHIP <- round( (dat$H + dat$BB)/dat$IP, 3) # WHIP 이닝당 출루 허용
-  dat <- data.frame( dat, WHIP )
+  WHIP <- round( (dat$HA + dat$BBA)/dat$IP, 3) # WHIP 이닝당 출루 허용
+  SOAPER <- round( (dat$SOA/9), 3) #서희추가
+  BBAPER <- round( (dat$BBA/9),3) #서희추가
+  LOBPER <- round( (dat$HA + dat$BBA + dat$HBPA -dat$R)/(dat$HA + dat$BBA +dat$HBPA -(1.4*dat$HRA)),3) #서희추가
+  dat <- data.frame( dat, WHIP, SOAPER, BBAPER, LOBPER )
   # 당일 ERA 제거
   return(dat[,-5])
 }
@@ -90,7 +95,9 @@ cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   OBP <- (dat$H + dat$BB + dat$HBP)/(dat$AB + dat$BB + dat$HBP) # 출루율, 원래는 분모에 SF(희생플라이) 도 더해줘야 함 
   OPS <- SLG + OBP # OPS
   SLG <- round(SLG, 3) ; OBP <- round(OBP, 3) ; OPS <- round(OPS, 3)
-  dat <- data.frame (dat, SLG, OBP, OPS)
+  SBPER <- round(dat$SB/(dat$SB+dat$CS), 3) #서희추가 
+  dat <- data.frame (dat, SLG, OBP, OPS, SBPER)
+  
   # 당일 타율 제거
   return(dat[,-3])
 }
