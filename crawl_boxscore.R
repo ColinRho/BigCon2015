@@ -51,19 +51,23 @@ gamelist.mod <- function ( b, year="2015" ) { # b 는 각 경기의 행렬
   mat <- data.frame( date, time, match, stadium )
   return(mat)
 }
+
+# http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=2015+프로야구
 # 네이버 검색결과를 통해 각 해의 개막일을 추출(포스트 시즌 추가)
 opening.day <- function ( year="2015", post.season=F ) {
   preurl <- "http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query="
   # 포스트 시즌이 시작되는 날짜
-  if ( post.season ) { posturl <- "프로야구+포스트시즌" }
-  else { posturl <- "프로야구" }
+  if ( post.season ) { posturl <- "+프로야구+포스트시즌" }
+  else { posturl <- "+프로야구" }
   url <- paste( preurl, year, posturl, sep="")
   # html 스크립트와 개막일 정보가 있는 node
   script <- html(url)
   node <- html_nodes(script, "dd")[[5]]
-  date <- substr( html_text(node), 1, 12)
+  date <- substr( html_text(node), 1, 11)
   return(as.Date( gsub("\\D", " ", date), "%Y %m %d"))
 }
+
+
 ## 매월별로 경기결과를 크롤링하는 함수(네이버 스포츠)
 gamelist.monthly <- function ( month="08", year ="2015" ) {
   # 오늘날짜를 url 형식에 맞도록
@@ -86,8 +90,8 @@ gamelist.monthly <- function ( month="08", year ="2015" ) {
   }
   # list를 행렬로 만들고, 개막일부터 오늘 이전까지의 자료만
   open <- opening.day(year)
-  l <- rbindlist(l) ; l <- subset(l, date < Sys.Date() & date >= open)
-  return(as.data.frame(l))
+  l <- myrbind(l) ; l <- subset(l, date < Sys.Date() & date >= open)
+  return(l)
 }
 ## 최종 결과출력 함수 (Months 벡터가 input으로 들어가야 함)
 gamelist.total <- function( month, year="2015" ) { 
@@ -96,8 +100,8 @@ gamelist.total <- function( month, year="2015" ) {
   for (i in 1:length(month)) {
     l <- c(l, list(gamelist.monthly( month[i], year )) )
   }
-  boxscore <- rbindlist(l)
-  return(as.data.frame(boxscore))
+  boxscore <- myrbind(l)
+  return(boxscore)
 }
 
 
@@ -219,7 +223,7 @@ lineup.total <- function( x, by.month=NULL ) { # x gamelist여야함, 월별로 
   for (i in 1:nrow(x)) {
     l <- c(l, list(lineup.each( x[i,] )) )
   }
-  lineup <- rbindlist(l)
-  return(as.data.frame(lineup))
+  lineup <- myrbind(l)
+  return(lineup)
 }
 

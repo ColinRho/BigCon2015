@@ -1,9 +1,22 @@
 ## package "XML", "data.table" required  
-
+########## 몇가지 계산을 편하게 하기위한 함수들 ##################################################
+## rbindlist와 as.data.frame을 결합한 함수
+myrbind <- function( list, use.names = fill, fill = FALSE ) {
+  l <- rbindlist(list, use.names = fill, fill = FALSE)
+  return( as.data.frame(l) )
+}
+## numeric이면서 na가 아닌 것에 대한 logical 함수
+is.numna <- function( x ) {
+  if ( is.numeric(x) & !is.na(x) ) return(TRUE)
+  else return (FALSE)
+}
 ## numeric 변수로 변환하는 함수(input: 벡터)
 convert.numeric <- function ( x ) {
   return(as.numeric( as.character (x) ))
 }
+##################################################################################################
+
+
 ## 투수의 이닝(IP) 데이터를 numeric으로 변환하는 함수
 convert.IP <- function ( IP ) {
   IP <- as.character(IP)
@@ -49,8 +62,8 @@ crawl.mod <- function(row.player) {
   for (i in 1:length(a)) {
     a[[i]] <- as.data.frame(a[[i]])
   }
-  a <- rbindlist(a)
-  return(as.data.frame(a))
+  a <- myrbind(a)
+  return(a)
 }
 ## numeric 변환 및 누적 데이터 계산 함수(투수용)
 cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이어야 한다.
@@ -60,8 +73,7 @@ cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   dat[,5:p] <- apply(dat[,5:p], 2, convert.numeric)
   # 변수명 설정
   colnames(dat)[1:4] <- c("date","vs","type","result") ; colnames(dat)[p] <- "ERA"
-  colnames(dat)[8:12] <- c("HA","HRA","BBA","HBPA","SOA") #서희추가
-  
+  colnames(dat)[8:13] <- c("HA","HRA","BBA","HBPA","SOA","RA") #서희추가
   # 누적데이터 계산
   if ( nrow(dat) != 1){
     for ( row.num in 2:nrow(dat) ) {
@@ -96,8 +108,8 @@ cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   OPS <- SLG + OBP # OPS
   SLG <- round(SLG, 3) ; OBP <- round(OBP, 3) ; OPS <- round(OPS, 3)
   SBPER <- round(dat$SB/(dat$SB+dat$CS), 3) #서희추가 
-  dat <- data.frame (dat, SLG, OBP, OPS, SBPER)
   
+  dat <- data.frame (dat, SLG, OBP, OPS, SBPER)
   # 당일 타율 제거
   return(dat[,-3])
 }
