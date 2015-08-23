@@ -1,6 +1,5 @@
 ## package "plyr" required  
 
-
 ## 동명이인 추출하는 함수(데이터 소스의 가장 첫단계에서 필요)
 homonym <- function( player_id ) {
   # 동명이인들의 이름
@@ -18,7 +17,8 @@ homonym <- function( player_id ) {
   return(res)
 }
 ## 동명이인인 선수들의 이름을 바꾸는 함수(동명이인 목록 필요함)
-change.homonym <- function( x, team, samename=samename ) { # x는 각 팀별 라인업에 있는 선수들 벡터, team은 해당 팀명
+change.homonym <- function( x, team ) { # x는 각 팀별 라인업에 있는 선수들 벡터, team은 해당 팀명
+  x <- as.matrix(x)
   # 동명이인 없음
   if ( sum(x %in% samename) == 0 ) { return(x) }
   else {
@@ -31,55 +31,169 @@ change.homonym <- function( x, team, samename=samename ) { # x는 각 팀별 라
   }
 }
 ## 각 경기의 양팀 라인업을 불러오는 함수
-get.lineup <- function( match, lineup ) { # match 는 gamelist의 한 row벡터
-  d <- as.character( match$date )
-  aw <- as.character(match$away) ; ho <- as.character(match$home)
+get.lineup <- function( game ) { # game은 gamelist의 한 row벡터
+  d <- as.character( game$date )
+  aw <- as.character(game$away) ; ho <- as.character(game$home)
   mat <- subset(lineup, date == d & ( team == aw | team == ho  ) )
   return(mat)
 }
 ## 각 선수마다 경기 전날까지의 누적기록을 출력하는 함수
-get.latest <- function ( player="", gameDate ) {
+get.latest <- function ( player, gameDate ) {
   # 데이터 불러오기, crawl.loop 등으로 이미 GlobalEnv에 선수이름으로 된 데이터 행렬이 필요함
   dat <- get( player, envir=.GlobalEnv)
-  # 경기일 이전의 데이
+  # 경기일 이전의 데이터
   lgc <- dat$date < gameDate
-  # 해당 경기일 전까지 누적데이터가 없는 경우
-  if ( sum(lgc) == 0) { return(NA) }
+  # 해당 경기일 전까지 누적데이터가 없는 경우(투수)
+  if ( sum(lgc) == 0 & subset(player_id, name==player)$pos == "p") { 
+    res <- matrix( rep(0, length.out=ncol(양현종)), nrow=1 )
+    colnames(res) <- colnames(양현종)
+  }
+  # 해당 경기일 전까지 누적데이터가 없는 경우(타자)
+  else if ( sum(lgc) == 0 & subset(player_id, name==player)$pos != "p") {
+    res <- matrix( rep(0, length.out=ncol(박병호)), nrow=1 ) 
+    colnames(res) <- colnames(박병호)
+  }
+  # 투수대표 양현종, 타자대표 박병호의 데이터가 있다는 가정하에...
+  # 경기기록이 있는 경우
   else { 
     v <- dat$date[lgc] 
-    res <- subset(dat, date == max(v))
-    return(res)
+    res <- subset(dat, date == max(v)) # 하나의 row
   }
+  row.names(res) <- player
+  return(as.data.frame(res))
 }
-## 아직 이병규 문제 해결 안됨
-get.player.stat <- function ( match, lineup, samename ) { 
+## 경기가 주어졌을 때 그 날의 전체 선발 라인업과 그 선수들의 전날까지 기록을 불러오는 함수
+get.player.stat <- function ( game ) { 
   ### match는 gamelist의 각 row 
   ### samename은 동명이인 목록 lineup은 모든경기 라인업 목록
-  x <- get.lineup( match, lineup)
-  gameDate <- as.character(x$date[1])
+  x <- get.lineup( game )
+  gameDate <- as.character(game$date)
+  a.team <- as.character(game$away) ; h.team <- as.character(game$home)
   # 각팀 투수들
-  pitchers <- as.character( x$start_pitcher ) 
-  # 각팀 타자들
-  away_hit_list <- as.character( as.matrix( x[1,4:12] ) )
-  home_hit_list <- as.character( as.matrix( x[2,4:12] ) )
-  away_total <- c(pitchers[1], away_hit_list)
-  home_total <- c(pitchers[2], home_hit_list)
+  away_total <- subset(x, team==a.team)[-(1:2)]
+  home_total <- subset(x, team==h.team)[-(1:2)]
   # 동명이인 컨트롤
-  away_total <- change.homonym(away_total, team=x$team[1], samename)
-  home_total <- change.homonym(home_total, team=x$team[2], samename)
+  away_total <- change.homonym(away_total, team=a.team)
+  home_total <- change.homonym(home_total, team=h.team)
   # 투수들 기록
-  away_pit <- get.latest(away_total[1], gameDate) 
+  away_pit <- get.latest(away_total[1], gameDate)  
   home_pit <- get.latest(home_total[1], gameDate)
   # 타자들 기록
-  away_hit <- lapply( away_total[-1], get.latest, gameDate )
+  away_hit <- lapply( away_total[-1], get.latest, gameDate ) 
   home_hit <- lapply( home_total[-1], get.latest, gameDate )
-  away_hit <- do.call(rbind, away_hit) ; home_hit <- do.call(rbind, home_hit)
-  row.names(away_hit) <- away_hit_list
-  row.names(home_hit) <- home_hit_list
+  away_hit <- myrbind(away_hit) ; home_hit <- myrbind(home_hit)
+  row.names(away_hit) <- away_total[-1] ; row.names(home_hit) <- home_total[-1]  
   # 결과출력
-  res <- list(away_pit, home_pit, away_hit, home_hit)
-  names(res) <- c(pitchers, "away_hit","home_hit")
+  res <- list(away_pit=away_pit, home_pit=home_pit, away_hit=away_hit, home_hit=home_hit)
   return(res)
 }
+
+######### 데이터가 없는 경우에 해당 row를 0으로 채우게 된다
+
+## 승패 계산 함수
+winlose <- function ( game, team ) { # gamelist의 각 row를 input으로
+  splscore <- unlist(strsplit(as.character(game$score), ":" ))
+  # 무승부
+  score_away <- as.numeric( splscore[1] ) ; score_home <- as.numeric( splscore[2] ) 
+  if ( score_away == score_home ) { return(NA) }
+  # 원정일 경우
+  if (team == game$away) {
+    if ( score_away < score_home ) { result <- 0 }
+    else { result <- 1 }
+  }
+  # 홈일 경우
+  else if (team == game$home) {
+    if ( score_away > score_home ) { result <- 0 }
+    else  { result <- 1 }
+  }
+  return(result)
+}
+## 연승, 상대승률 함수
+streak.or.vs <- function ( gameset, team, vs=NULL ) { 
+  # 가장 최근의 연승 혹은 연패만 기록된다. gamelist의 subset을 date변수를 이용해 지정하므로서 특정 시기의 연속기록을 출력한다.
+  # 이전경기 기록 없는경우 연속기록은 0, 상대승률은 NA를 출력한다
+  if ( nrow(gameset)==0 & is.null(vs) ) { return(0) }
+  if ( nrow(gameset)==0 & !is.null(vs) ) { return(NA) }
+  # 해당 팀으로만 부분집합
+  sub <- subset(gameset, (away == team | home == team))
+  # 상대승률 옵션이 있을 시
+  if (!is.null(vs)) {
+    # 특정 팀과의 기록
+    sub2 <- subset(sub, (away==vs | home==vs))
+    # 승패 계산
+    v <- adply( sub2, 1, winlose, team=team)$V1
+    win.rate <- sum(v) / nrow(sub2)
+    return( win.rate )
+  }
+  # 상대승률 옵션이 NULL일 때, 연승기록
+  else {
+    # 승패 계산
+    x <- adply( sub, 1, winlose, team=team )$V1
+    y <- rle(x)$lengths
+    z <- rle(x)$values
+    # 연속의 수
+    str <- tail(y, 1)
+    # 승패에 따라 부호 결정
+    if (tail(z,1) == 1) { ind <- 1 }
+    else if (tail(z,1) == 0) { ind <- -1 }
+    else ind <- NA
+    return(str*ind)
+  }
+}
+## stat weighted avg
+## 지난시즌(특정시즌의 데이터셋을 입력) 의 기록을 각 선수별로 불러오는 함수
+last.season <- function ( player, dataset ) {
+  if ( player %in% dataset$name ) return( subset( dataset, name == player ) )
+  # 지난시즌 기록이 없으면 0만 출력(가중평균하여 사용할 것이기 때문에)
+  else  {
+    cat(player, "(은)는 이전 시즌의 데이터가 없습니다","\n")
+    nu <- data.frame(player, NA, t(rep(0, length.out=(ncol(dataset)-2) )) )
+    names(nu) <- colnames(dataset)
+    return( nu ) 
+  }
+}
+## 지난시즌과 이번시즌의 가중평균된 stat을 출력하는 함수
+mix.stat <- function ( x, w, pitcher_2014, hitter_2014 ) { # x should be get.player.stat의 결과
+  # x는 이번시즌의 기록, w는 지난시즌에 대한 가중
+  if ( 0 >= w & 1 <= w ) stop("weight는 0과 1사이의 값이어야 합니다.")
+  # 지난 시즌 데이터를 불러오기
+  last.season.pit1 <- last.season( row.names(x[[1]]), pitcher_2014 )
+  last.season.pit2 <- last.season( row.names(x[[2]]), pitcher_2014 )
+  last.season.hit1 <- lapply( row.names(x[[3]]) , last.season, dataset=hitter_2014 )
+  last.season.hit1 <- do.call(rbind, last.season.hit1)
+  last.season.hit2 <- lapply( row.names(x[[4]]) , last.season, dataset=hitter_2014 )
+  last.season.hit2 <- do.call(rbind, last.season.hit2)
+  last.season.l <- list(last.season.pit1,last.season.pit2,last.season.hit1,last.season.hit2)
+  # 지난 시즌과 이번시즌을 가중평균
+  for(i in 1:4){
+    num <- names(last.season.l[[i]])[sapply(last.season.l[[i]], is.numna)]
+    x[[i]] <- x[[i]][num]*(1-w) + last.season.l[[i]][num]*w
+  }
+  return(x)
+} 
+## 최종 데이터셋에서 한 case를 생성하는 함수
+sum.stat <- function (game, w) { # w is weight of stats of last season
+  sub <- subset ( gamelist , ( date < game$date & !is.na(score)) )
+  # 선수들의 스탯을 불러오기
+  x <- get.player.stat( game )
+  y <- mix.stat(x, w, pitcher_2014, hitter_2014)
+  a.team <- as.character(game$away) ;  h.team <- as.character(game$home)
+  # 선발투수들 기록
+  ap <- y$away_pit ; hp <- y$home_pit 
+  # 타자들의 기록 합산
+  ah <- round(colMeans( y$away_hit, na.rm=T ), 3)
+  hh <- round(colMeans( y$home_hit, na.rm=T ), 3)
+  # 각 팀의 연승기록 계산
+  a.streak <- streak.or.vs(sub, team=a.team ) ; h.streak <- streak.or.vs(sub, team=h.team )
+  # 상대승률 계산
+  a.vs <- streak.or.vs(sub, team=a.team, vs=h.team) ; h.vs <- streak.or.vs(sub, team=h.team, vs=a.team)
+  # 각팀의 승패결과(y값)
+  a.win <- winlose( game, as.character(game$away)) ; h.win <- winlose( game, as.character(game$home))
+  # 데이터 결합
+  away <- c(is_home=0, ap, ah, streak=a.streak, vs_rate=a.vs, win=a.win )
+  home <- c(is_home=1, hp, hh, streak=h.streak, vs_rate=h.vs, win=h.win )
+  total <- data.frame( date=rep(game$date), team=c(a.team, h.team), rbind(away, home)) 
+  return(total)
+}  # 변수추가 필요
 
 
