@@ -39,6 +39,7 @@ rm(a)
   hitter_2014 <- subset(hitter_select, year == 2014)
   hitter_2014[,5:16] <- round( hitter_2014[,5:16]/hitter_2014$AB, 3 )
   hitter_2014 <- hitter_2014[ , ! colnames(hitter_2014) %in% c("year") ]
+  
 ## 3. 2015년 모든 경기들 목록
 month <- c("03","04","05","06","07","08") # 8월까지 입력함
 gamelist <- gamelist.total ( month, year = "2015" ) # 경기목록
@@ -56,11 +57,9 @@ write.csv(lineup, "lineup.csv", row.names=F)
 
 
 ## 6. 각 경기별 라인업에 따라 선수들의 기록을 호출 
-get.player.stat(match = gamelist[300,],lineup = lineup, samename = samename)
-
-
-
-
+gameset <- subset(gamelist, !is.na(score))
+adply(gameset, 1, sum.stat, w=0.3)
+  
 
 
 
