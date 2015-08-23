@@ -57,9 +57,16 @@ write.csv(lineup, "lineup.csv", row.names=F)
 
 
 ## 6. 각 경기별 라인업에 따라 선수들의 기록을 호출 
-gameset <- subset(gamelist, !is.na(score))
-adply(gameset, 1, sum.stat, w=0.3)
-  
+gameset <- subset(gamelist, !is.na(score) )
+gameset <- gameset[-420,] # 올스타전 제외
+
+w <- 0.3 # 임의로 지정한 weight
+# 몇번째에서 에러가 생기는지 알아보기위해
+i <- 1
+while ( i <= nrow(gameset) ) {
+  sum.stat(gameset[i,], w)
+  i <- i + 1
+}
 
 
 

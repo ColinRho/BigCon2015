@@ -133,7 +133,12 @@ streak.or.vs <- function ( gameset, team, vs=NULL ) {
     z <- rle(x)$values
     # 연속의 수
     str <- tail(y, 1)
-    # 승패에 따라 부호 결정
+    # 이전 게임이 무승부인 경우, 그 전까지의 연승 혹은 연패
+    if ( is.na(tail(z,1)) ) { 
+      z <- z[-length(z)] 
+      str <- tail(y,2)[1]
+    }
+    # 승패에 따라 부호 결정  
     if (tail(z,1) == 1) { ind <- 1 }
     else if (tail(z,1) == 0) { ind <- -1 }
     else ind <- NA
