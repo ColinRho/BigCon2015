@@ -200,5 +200,15 @@ sum.stat <- function (game, w) { # w is weight of stats of last season
   total <- data.frame( date=rep(game$date), team=c(a.team, h.team), rbind(away, home)) 
   return(total)
 }  # 변수추가 필요
-
+## case를 합쳐 데이터셋을 만드는 함수
+aggr.stat <- function( gameset, w ) {
+  # 임의의 행렬
+  l <- list()
+  # 매 경기마다 sum.stat을 실행
+  for ( i in 1:nrow(gameset) ) {
+    l[[i]] <- sum.stat(gameset[i,], w)  
+  }
+  # 결합된 데이터
+  return( myrbind(l) )
+}
 

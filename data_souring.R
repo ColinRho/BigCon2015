@@ -18,8 +18,6 @@ for ( i in 1:length(filename)) {
   assign(filename[i], DB[[i]])  # 각 파일명 matrix로 할당
 }
 
-gamelist$date <- as.Date(gamelist$date)
-lineup$date <- as.Date(lineup$date)
 ## 2. 선수목록에서 동명이인 이름 바꾸기, 리스트 출력
 samename <- homonym(player_id)$samename # 동명이인 리스트
 player_id <- homonym(player_id)$dat # 수정된 선수목록
@@ -40,34 +38,27 @@ rm(a)
   hitter_2014[,5:16] <- round( hitter_2014[,5:16]/hitter_2014$AB, 3 )
   hitter_2014 <- hitter_2014[ , ! colnames(hitter_2014) %in% c("year") ]
   
-## 3. 2015년 모든 경기들 목록
+## 3. crawling 루프(선수 개인별 이번 시즌 데이터)
+crawl.loop ( file = player_id, write.as.csv=F)
+  
+## 4. 2015년 모든 경기들 목록
 month <- c("03","04","05","06","07","08") # 8월까지 입력함
 gamelist <- gamelist.total ( month, year = "2015" ) # 경기목록
-
-## 4. crawling 루프(선수 개인별 이번 시즌 데이터)
-crawl.loop ( file = player_id, write.as.csv=F)
 
 ## 5. 경기목록의 모든 경기의 라인업
 #### 주의: 매 경기마다 페이지를 크롤링해오기 때문에 시간이 꽤 소요됨(네트워크환경이 좋은상태를 권장)
 #### 혹은 월별로 
-lineup <- lineup.total(gamelist)  
 # as csv 
-write.csv(lineup, "lineup.csv", row.names=F)
-
-
+lineupAug <- lineup.total(gamelist, by.month="08")
+lineup0$date <- as.Date(lineup0$date)
+lineup <- myrbind( list(lineup0, lineupAug) )
 
 ## 6. 각 경기별 라인업에 따라 선수들의 기록을 호출 
 gameset <- subset(gamelist, !is.na(score) )
 gameset <- gameset[-420,] # 올스타전 제외
 
-w <- 0.3 # 임의로 지정한 weight
-# 몇번째에서 에러가 생기는지 알아보기위해
-i <- 1
-while ( i <= nrow(gameset) ) {
-  sum.stat(gameset[i,], w)
-  i <- i + 1
-}
-
-
+w <- 0.3  # 임의로 지정한 weight
+## gameset과 lineup의 자료가 같은 날까지 일치해야 한다.
+dat1 <- aggr.stat(gameset, w)
 
 
