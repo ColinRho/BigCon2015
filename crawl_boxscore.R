@@ -52,13 +52,13 @@ gamelist.mod <- function ( b, year="2015" ) { # b 는 각 경기의 행렬
   return(mat)
 }
 
-# http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query=2015+프로야구
-# 네이버 검색결과를 통해 각 해의 개막일을 추출(포스트 시즌 추가)
+
+## 검색결과를 통해 각 해의 개막일을 추출(포스트 시즌 추가)
 opening.day <- function ( year="2015", post.season=F ) {
-  preurl <- "http://search.naver.com/search.naver?sm=tab_hty.top&where=nexearch&ie=utf8&query="
+  preurl <- "http://search.daum.net/search?w=tot&DA=YZR&t__nil_searchbox=btn&sug=&sugo=&sq=&o=&q="
   # 포스트 시즌이 시작되는 날짜
-  if ( post.season ) { posturl <- "+프로야구+포스트시즌" }
-  else { posturl <- "+프로야구" }
+  if ( post.season ) { posturl <- "+%ED%94%84%EB%A1%9C%EC%95%BC%EA%B5%AC+%ED%8F%AC%EC%8A%A4%ED%8A%B8%EC%8B%9C%EC%A6%8C" }
+  else { posturl <- "+%ED%94%84%EB%A1%9C%EC%95%BC%EA%B5%AC" }
   url <- paste( preurl, year, posturl, sep="")
   # html 스크립트와 개막일 정보가 있는 node
   script <- html(url)
