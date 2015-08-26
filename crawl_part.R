@@ -5,11 +5,6 @@ myrbind <- function( list, use.names = fill, fill = FALSE ) {
   l <- rbindlist(list, use.names = fill, fill = FALSE)
   return( as.data.frame(l) )
 }
-## numeric이면서 na가 아닌 것에 대한 logical 함수
-is.numna <- function( x ) {
-  if ( is.numeric(x) & !is.na(x) ) return(TRUE)
-  else return (FALSE)
-}
 ## numeric 변수로 변환하는 함수(input: 벡터)
 convert.numeric <- function ( x ) {
   return(as.numeric( as.character (x) ))

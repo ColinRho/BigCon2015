@@ -171,7 +171,7 @@ mix.stat <- function ( x, w, pitcher_2014, hitter_2014 ) { # x should be get.pla
   last.season.l <- list(last.season.pit1,last.season.pit2,last.season.hit1,last.season.hit2)
   # 지난 시즌과 이번시즌을 가중평균
   for(i in 1:4){
-    num <- names(last.season.l[[i]])[sapply(last.season.l[[i]], is.numna)]
+    num <- names(last.season.l[[i]])[sapply(last.season.l[[i]], is.numeric)]
     x[[i]] <- x[[i]][num]*(1-w) + last.season.l[[i]][num]*w
   }
   return(x)
@@ -197,8 +197,9 @@ sum.stat <- function (game, w) { # w is weight of stats of last season
   # 데이터 결합
   away0 <- c(is_home=0, ap, ah, streak=a.streak, vs_rate=a.vs, win=a.win )
   home0 <- c(is_home=1, hp, hh, streak=h.streak, vs_rate=h.vs, win=h.win )
+  var.name <- names(away0)
   away <- as.numeric(away0) ; home <- as.numeric(home0)
-  names(away) <- names(away0) ; names(home) <- names(home0)
+  names(away) <- var.name ; names(home) <- var.name
   total <- data.frame( date=rep(game$date), team=c(a.team, h.team), rbind(away, home)) 
   return(total)
 }  # 변수추가 필요
