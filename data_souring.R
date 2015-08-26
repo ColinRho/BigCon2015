@@ -6,8 +6,7 @@ library(data.table)
 ## 함수 실행에 필요한 데이터 파일들: gamelist, lineup, samename, player_id
 
 ## 함수 파일 불러오기
-source("crawl_player.R",encoding="UTF-8")
-source("crawl_boxscore.R",encoding="UTF-8")
+source("crawl_part.R",encoding="UTF-8")
 source("match_playerdata.R",encoding="UTF-8")
 
 ## 1. csv로 있는 파일 읽기

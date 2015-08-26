@@ -197,6 +197,9 @@ sum.stat <- function (game, w) { # w is weight of stats of last season
   # 데이터 결합
   away <- c(is_home=0, ap, ah, streak=a.streak, vs_rate=a.vs, win=a.win )
   home <- c(is_home=1, hp, hh, streak=h.streak, vs_rate=h.vs, win=h.win )
+  var.name <- names(away)
+  away <- as.numeric(away) ; home <- as.numeric(home)
+  names(away) <- var.name ; names(home) <- var.name
   total <- data.frame( date=rep(game$date), team=c(a.team, h.team), rbind(away, home)) 
   return(total)
 }  # 변수추가 필요
