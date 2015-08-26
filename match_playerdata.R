@@ -122,7 +122,7 @@ streak.or.vs <- function ( gameset, team, vs=NULL ) {
     sub2 <- subset(sub, (away==vs | home==vs))
     # 승패 계산
     v <- adply( sub2, 1, winlose, team=team)$V1
-    win.rate <- sum(v) / nrow(sub2)
+    win.rate <- sum(v, na.rm=T) / nrow(sub2)
     return( round(win.rate,3) )
   }
   # 상대승률 옵션이 NULL일 때, 연승기록
@@ -177,7 +177,7 @@ mix.stat <- function ( x, w, pitcher_2014, hitter_2014 ) { # x should be get.pla
   return(x)
 } 
 ## 최종 데이터셋에서 한 case를 생성하는 함수
-sum.stat <- function (game, w) { # w is weight of stats of last season
+sum.stat <- function (game, w, div=F) { # w is weight of stats of last season
   sub <- subset ( gamelist , ( date < game$date & !is.na(score)) )
   # 선수들의 스탯을 불러오기
   x <- get.player.stat( game )
@@ -200,16 +200,23 @@ sum.stat <- function (game, w) { # w is weight of stats of last season
   var.name <- names(away0)
   away <- as.numeric(away0) ; home <- as.numeric(home0)
   names(away) <- var.name ; names(home) <- var.name
-  total <- data.frame( date=rep(game$date), team=c(a.team, h.team), rbind(away, home)) 
+  ## 나눔데이터 생성하고자 할 때
+  if ( div ) {
+    vec <- c( is.home=0, ap/hp, ah/hh, a.streak - h.streak, vs_rate=a.vs, win=a.win ) 
+    names(vec) <- var.name
+    vec <- vec[-1]
+    total <- data.frame( date=game$date, matchup = paste(a.team,h.team,sep="vs"), vec )
+  }
+  else  total <- data.frame( date=rep(game$date), team=c(a.team, h.team), rbind(away, home)) 
   return(total)
 }  # 변수추가 필요
 ## case를 합쳐 데이터셋을 만드는 함수
-aggr.stat <- function( gameset, w ) {
+aggr.stat <- function( gameset, w, div=F) {
   # 임의의 행렬
   l <- list()
   # 매 경기마다 sum.stat을 실행
   for ( i in 1:nrow(gameset) ) {
-    l[[i]] <- sum.stat(gameset[i,], w)  
+    l[[i]] <- sum.stat(gameset[i,], w, div)  
   }
   # 결합된 데이터
   return( myrbind(l) )

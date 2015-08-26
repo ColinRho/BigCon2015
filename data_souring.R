@@ -58,3 +58,4 @@ w <- 0.3  # 임의로 지정한 weight
 ## gameset과 lineup의 자료가 같은 날까지 일치해야 한다.
 dat1 <- aggr.stat(gameset, w)
 
+dat2 <- aggr.stat(gameset, w, T)
