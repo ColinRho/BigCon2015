@@ -145,6 +145,14 @@ streak.or.vs <- function ( gameset, team, vs=NULL ) {
     return(str*ind)
   }
 }
+## 선수들 연봉 데이터 호출 함수
+salary <- function( game ) {
+  x <- get.lineup(game)
+  a.line <- x[1,-c(1,2)] ; h.line <- x[2,-c(1,2)]
+  a.sal <- mean(subset(player_id, name %in% as.matrix(a.line))$salary, na.rm=T)
+  h.sal <- mean(subset(player_id, name %in% as.matrix(h.line))$salary, na.rm=T)
+  return( c(a.sal, h.sal) )
+}
 ## stat weighted avg
 ## 지난시즌(특정시즌의 데이터셋을 입력) 의 기록을 각 선수별로 불러오는 함수
 last.season <- function ( player, dataset ) {
@@ -194,15 +202,17 @@ sum.stat <- function (game, w, div=F) { # w is weight of stats of last season
   a.vs <- streak.or.vs(sub, team=a.team, vs=h.team) ; h.vs <- streak.or.vs(sub, team=h.team, vs=a.team)
   # 각팀의 승패결과(y값)
   a.win <- winlose( game, as.character(game$away)) ; h.win <- winlose( game, as.character(game$home))
+  # 연봉데이터
+  payment <- salary(game)
   # 데이터 결합
-  away0 <- c(is_home=0, ap, ah, streak=a.streak, vs_rate=a.vs, win=a.win )
-  home0 <- c(is_home=1, hp, hh, streak=h.streak, vs_rate=h.vs, win=h.win )
+  away0 <- c(is_home=0, ap, ah, payment = payment[1], streak=a.streak, vs_rate=a.vs, win=a.win )
+  home0 <- c(is_home=1, hp, hh, payment = payment[2],streak=h.streak, vs_rate=h.vs, win=h.win )
   var.name <- names(away0)
   away <- as.numeric(away0) ; home <- as.numeric(home0)
   names(away) <- var.name ; names(home) <- var.name
-  ## 나눔데이터 생성하고자 할 때
+  # 나눔데이터 생성하고자 할 때
   if ( div ) {
-    vec <- c( is.home=0, ap/hp, ah/hh, a.streak - h.streak, vs_rate=a.vs, win=a.win ) 
+    vec <- c( is.home=0, ap/hp, ah/hh, payment[1]/payment[2], a.streak - h.streak, vs_rate=a.vs, win=a.win ) 
     names(vec) <- var.name
     vec <- vec[-1]
     total <- data.frame( date=game$date, matchup = paste(a.team,h.team,sep="vs"), vec )
