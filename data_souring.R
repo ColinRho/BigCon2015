@@ -31,10 +31,8 @@ rm(a)
 
   ## 투수는 각 지표들을 이닝수로 나누었고, 타자들은 타수로 나누었다. 
   pitcher_2014 <- subset(pitcher_select, year == 2014)
-  pitcher_2014[,6:12] <- round( pitcher_2014[,6:12]/pitcher_2014$IP, 3)
   pitcher_2014 <- pitcher_2014[ , ! colnames(pitcher_2014) %in% c("year") ]
   hitter_2014 <- subset(hitter_select, year == 2014)
-  hitter_2014[,5:16] <- round( hitter_2014[,5:16]/hitter_2014$AB, 3 )
   hitter_2014 <- hitter_2014[ , ! colnames(hitter_2014) %in% c("year") ]
   
 ## 3. crawling 루프(선수 개인별 이번 시즌 데이터)

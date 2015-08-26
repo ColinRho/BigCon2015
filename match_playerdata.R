@@ -123,7 +123,7 @@ streak.or.vs <- function ( gameset, team, vs=NULL ) {
     # 승패 계산
     v <- adply( sub2, 1, winlose, team=team)$V1
     win.rate <- sum(v) / nrow(sub2)
-    return( win.rate )
+    return( round(win.rate,3) )
   }
   # 상대승률 옵션이 NULL일 때, 연승기록
   else {
@@ -195,11 +195,10 @@ sum.stat <- function (game, w) { # w is weight of stats of last season
   # 각팀의 승패결과(y값)
   a.win <- winlose( game, as.character(game$away)) ; h.win <- winlose( game, as.character(game$home))
   # 데이터 결합
-  away <- c(is_home=0, ap, ah, streak=a.streak, vs_rate=a.vs, win=a.win )
-  home <- c(is_home=1, hp, hh, streak=h.streak, vs_rate=h.vs, win=h.win )
-  var.name <- names(away)
-  away <- as.numeric(away) ; home <- as.numeric(home)
-  names(away) <- var.name ; names(home) <- var.name
+  away0 <- c(is_home=0, ap, ah, streak=a.streak, vs_rate=a.vs, win=a.win )
+  home0 <- c(is_home=1, hp, hh, streak=h.streak, vs_rate=h.vs, win=h.win )
+  away <- as.numeric(away0) ; home <- as.numeric(home0)
+  names(away) <- names(away0) ; names(home) <- names(home0)
   total <- data.frame( date=rep(game$date), team=c(a.team, h.team), rbind(away, home)) 
   return(total)
 }  # 변수추가 필요
