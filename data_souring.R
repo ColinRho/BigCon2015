@@ -56,6 +56,10 @@ gameset <- gameset[-420,] # 올스타전 제외
 
 w <- 0.3  # 임의로 지정한 weight
 ## gameset과 lineup의 자료가 같은 날까지 일치해야 한다.
+# 원시 데이터
 dat1 <- aggr.stat(gameset, w)
-
+# 나눔 데이터
 dat2 <- aggr.stat(gameset, w, T)
+# 상대승률이 없는경우( 시즌 첫게임 ) 50%로 변경
+dat2$vs_rate[which( is.nan(dat2$vs_rate) )] <- 0.5
+

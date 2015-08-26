@@ -157,10 +157,11 @@ salary <- function( game ) {
 ## 지난시즌(특정시즌의 데이터셋을 입력) 의 기록을 각 선수별로 불러오는 함수
 last.season <- function ( player, dataset ) {
   if ( player %in% dataset$name ) return( subset( dataset, name == player ) )
-  # 지난시즌 기록이 없으면 0만 출력(가중평균하여 사용할 것이기 때문에)
+  # 지난시즌 기록이 없으면 지난 시즌의 평균으로 출력
   else  {
     cat(player, "(은)는 이전 시즌의 데이터가 없습니다","\n")
-    nu <- data.frame(player, NA, t(rep(0, length.out=(ncol(dataset)-2) )) )
+    v <- colMeans( dataset[ ,which(sapply( dataset, is.numeric ))], na.rm=T)
+    nu <- data.frame(player, NA, t(v) )
     names(nu) <- colnames(dataset)
     return( nu ) 
   }
