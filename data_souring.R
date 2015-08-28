@@ -54,12 +54,28 @@ lineup <- myrbind( list(lineup0, lineupAug) )
 gameset <- subset(gamelist, !is.na(score) )
 gameset <- gameset[-420,] # 올스타전 제외
 
-w <- 0.3  # 임의로 지정한 weight
+w <- 0.2  # 임의로 지정한 weight
 ## gameset과 lineup의 자료가 같은 날까지 일치해야 한다.
 # 원시 데이터
 dat1 <- aggr.stat(gameset, w)
 # 나눔 데이터
 dat2 <- aggr.stat(gameset, w, T)
 # 상대승률이 없는경우( 시즌 첫게임 ) 50%로 변경
+dat1$vs_rate[which( is.nan(dat1$vs_rate) | is.na(dat1$vs_rate) )] <- 0.5
 dat2$vs_rate[which( is.nan(dat2$vs_rate) )] <- 0.5
+# 이분 데이터
+dat3 <- dat2
+# 각 열에 대하여 1보다 크면 1, 1보다 작으면 0 
+temp <- function ( column ) {
+  column[column < 1] <- 0
+  column[column >= 1] <- 1
+  return(column)
+}
+for ( i in 3:35 ) {
+  dat3[,i] <- temp(dat3[,i])
+}
+# 연승과 상대승률 변수 
+dat3$streak[dat3$streak >= 0 ] <- 1 ; dat3$streak[dat3$streak < 0 ] <- 0
+dat3$vs_rate[dat3$vs_rate >= 0.5 ] <- 1 ; dat3$vs_rate[dat3$vs_rate < 0.5 ] <- 0
+
 

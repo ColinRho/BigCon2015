@@ -1,11 +1,7 @@
-rm(list=ls())
+## ggplot2
+library(ggplot2)
 
-## 연도별 데이터 추출 함수
-yearly <- function( x, year ) { 
-  ret <- list()
-  for ( i in 1:length(x) ) {
-    ret[[i]] <- subset(x[[i]], YEAR == year)
-  }
-  return (ret )
-}
+summary(dat1)
+summary(dat2)
+summary(dat3)
 
