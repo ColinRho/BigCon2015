@@ -122,6 +122,17 @@ rate_plot(real2)
 rate_plot(pyth2, since = "2015-05-01")
 rate_plot(real2, since = "2015-05-01")
 
+## comparing real winning rates and pyth. expectation rates-
+comp_plot <- function ( x, real, pyth, since = NULL ) {
+  d <- data.frame(date = real$date, real = real[[x]], pyth = pyth[[x]])
+  if ( !is.null(since) ) d <- subset(d, date >= since)
+  melted <- melt(d, id.vars = "date")
+  p.tmp <- ggplot(melted, aes(x=date, y=value, group=variable)) 
+  p.tmp + geom_line(aes(colour=variable)) + xlab("Rate") + ylab("Date")
+}
+
+comp_plot( "LG", real2, pyth2 )
+
 ### https://en.wikipedia.org/wiki/Pythagorean_expectation
 
 library(MASS) # for LDA, QDA, Logistic Reg
