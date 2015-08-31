@@ -207,7 +207,9 @@ post.day <- function( year = "2015" ){
   # crawling webpage and take the first date as a beginning day of post season
   a <- readHTMLTable(url)[[1]] ; day <- as.character(a[1,1])
   # let 'day' meet Date form
-  d <- as.Date( paste( c( year, gsub("\\D","", unlist( strsplit(day, "\\.") ) ) ), collapse = "-" ) )
+  d1 <- gsub("\\D","", unlist( strsplit(day, "\\.") ) )
+  if ( length(d1) == 1 ) return(NA)
+  d <- as.Date( paste( c(year, d1), collapse = "-" ) )
   return(d)
 }
 ## 매월별로 경기결과를 크롤링하는 함수(네이버 스포츠)
