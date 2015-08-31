@@ -197,18 +197,18 @@ gamelist.mod <- function ( b, year="2015" ) { # b 는 각 경기의 행렬
   mat <- data.frame( date, time, match, stadium )
   return(mat)
 }
-## 검색결과를 통해 각 해의 개막일을 추출(포스트 시즌 추가)
-opening.day <- function ( year="2015", post.season=F ) {
-  preurl <- "http://search.daum.net/search?w=tot&DA=YZR&t__nil_searchbox=btn&sug=&sugo=&sq=&o=&q="
-  # 포스트 시즌이 시작되는 날짜
-  if ( post.season ) { posturl <- "+%ED%94%84%EB%A1%9C%EC%95%BC%EA%B5%AC+%ED%8F%AC%EC%8A%A4%ED%8A%B8%EC%8B%9C%EC%A6%8C" }
-  else { posturl <- "+%ED%94%84%EB%A1%9C%EC%95%BC%EA%B5%AC" }
-  url <- paste( preurl, year, posturl, sep="")
-  # html 스크립트와 개막일 정보가 있는 node
-  script <- html(url)
-  node <- html_nodes(script, "dd")[[5]]
-  date <- substr( html_text(node), 1, 11)
-  return(as.Date( gsub("\\D", " ", date), "%Y %m %d"))
+## vector of opening day since 2008
+opening <- c("2008-03-29", "2009-04-04", "2010-03-27", "2011-04-02", "2012-04-07", "2013-03-30", "2014-03-29","2015-03-28")
+opening <- as.Date(opening)
+## get postseason period by crawling KBO web page
+post.day <- function( year = "2015" ){
+  baseurl <- "http://www.koreabaseball.com/Schedule/GameList/PostSeason.aspx?gyear="
+  url <- paste( baseurl, year, sep="")
+  # crawling webpage and take the first date as a beginning day of post season
+  a <- readHTMLTable(url)[[1]] ; day <- as.character(a[1,1])
+  # let 'day' meet Date form
+  d <- as.Date( paste( c( year, gsub("\\D","", unlist( strsplit(day, "\\.") ) ) ), collapse = "-" ) )
+  return(d)
 }
 ## 매월별로 경기결과를 크롤링하는 함수(네이버 스포츠)
 gamelist.monthly <- function ( month="08", year ="2015" ) {
@@ -231,19 +231,21 @@ gamelist.monthly <- function ( month="08", year ="2015" ) {
     }
   }
   # list를 행렬로 만들고, 개막일부터 오늘 이전까지의 자료만
-  open <- opening.day(year)
-  l <- myrbind(l) ; l <- subset(l, date < Sys.Date() & date >= open)
+  l <- myrbind(l) 
   return(l)
 }
 ## 최종 결과출력 함수 (Months 벡터가 input으로 들어가야 함)
 gamelist.total <- function( month, year="2015" ) { 
+  open <- opening[ which(format(opening, "%Y") == year) ]
+  month <- month[ which (month >= format(open, "%m")) ]
   l <- list()
   # month가 크기 2이상의 벡터인 경우
   for (i in 1:length(month)) {
     l <- c(l, list(gamelist.monthly( month[i], year )) )
   }
   boxscore <- myrbind(l)
-  return(boxscore)
+  bs <- subset(boxscore, date < Sys.Date() & date >= open)
+  return(bs)
 }
 
 
@@ -278,7 +280,7 @@ game.url <- function( row.game ) {
   # kbo BoxScore url
   baseurl <- c("http://www.koreabaseball.com/Schedule/Game/BoxScore.aspx?leagueId=1&seriesId=","&gameId=","0&gyear=")
   # 포스트 시즌 날짜를 구분
-  pday <- opening.day( year, T)
+  pday <- post.day( year )
   # 시리즈코드 정규, 포스트시즌, 올스타전
   if ( vec$date >= pday+15 & !is.na(pday) ) { seriesid <- 7 } # 한국시리즈 (포스트시즌 시작일 기준 15일 후)
   else if ( vec$date >= pday+7 & !is.na(pday) ) { seriesid <- 5 } # 플레이오프 (포스트시즌 시작일 기준 7일 후)

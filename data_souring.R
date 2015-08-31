@@ -39,13 +39,13 @@ rm(a)
 crawl.loop ( file = player_id, write.as.csv=F)
   
 ## 4. 2015년 모든 경기들 목록
-month <- c("03","04","05","06","07","08") # 8월까지 입력함
+month <- c("03","04","05","06","07","08","09")
 gamelist <- gamelist.total ( month, year = "2015" ) # 경기목록
 
 ## 5. 경기목록의 모든 경기의 라인업
 #### 주의: 매 경기마다 페이지를 크롤링해오기 때문에 시간이 꽤 소요됨(네트워크환경이 좋은상태를 권장)
-#### 혹은 월별로 
-# as csv 
+#### 혹은 월별로 저장하는 것을 권장
+
 lineupAug <- lineup.total(gamelist, by.month="08")
 lineup0$date <- as.Date(lineup0$date)
 lineup <- myrbind( list(lineup0, lineupAug) )
