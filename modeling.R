@@ -1,4 +1,4 @@
-#### 1. Pythagorean expectation
+#### 1. Pythagorean Expectation and Time Series Analysis
 
 library(ggplot2)
 library(reshape2)
@@ -30,7 +30,9 @@ runs_by_team <- function ( team, games ) {
 }
 ## calculating real win percentage from dat1$data_sourcing.R
 real.wpct <- function( team, runs ) { # x should be team name
-  set <- runs[[team]]
+  # divide cases with one team, or all team
+  if ( !is.data.frame(runs) ) set <- runs[[team]]
+  else set <- runs
   # making 'win' variable
   for ( i in 1:nrow(set) ) {
     if ( set$run_scored[i] > set$run_allowed[i] ) { set$win[i] <- 1 }
@@ -54,14 +56,16 @@ real.wpct <- function( team, runs ) { # x should be team name
   return(v)
 }
 ## simple calculation function for pythagorean wpct
-pythagorean <- function (x, y) {
-  return(x^2 / (x^2 + y^2))
+pythagorean <- function (x, y, power = 2) {
+  return(x^power / (x^power + y^power))
 }
 ## calculating pythagorean expectation of each team
-pyth.exp <- function ( team, runs ) {
-  set <- runs[[team]]
+pyth.exp <- function ( team, runs, power = 2 ) {
+  # divide cases with one team, or all team
+  if ( !is.data.frame(runs) ) { set <- runs[[team]] }
+  else { set <- runs }
   cum.scored <- cumsum(set$run_scored) ; cum.allowed <- cumsum(set$run_allowed)
-  exp <- pythagorean( cum.scored, cum.allowed )
+  exp <- pythagorean( cum.scored, cum.allowed, power )
   return( exp )
 }
 ## function used after pyth.exp or real.wpct, to be used before melt and ggplot 
@@ -96,7 +100,7 @@ rates_by_date <- function ( x, runs, teams ) { # runs_list, teams needed. x shou
   return(res)
 }
 ## aggregated function for win rate calculation
-rate_func <- function( games, rate = "real" ) {
+rate_func <- function( games, rate = "real", power = 2 ) {
   # vector of team names excluding all-star game
   teams <- names( which( table(games$away) !=1 ) )
   # save runs data of each team as a list 
@@ -104,9 +108,42 @@ rate_func <- function( games, rate = "real" ) {
   # actual win rate in time series
   if ( rate == "real" ) rates <- sapply(teams, real.wpct, runs = runs_list)
   # pythagorean win rates in time series for each team
-  else if ( rate == "pyth" )  rates <- sapply(teams, pyth.exp, runs = runs_list)
+  else if ( rate == "pyth" )  rates <- sapply(teams, pyth.exp, runs = runs_list, power)
   rbd <- rates_by_date( x = rates, runs = runs_list, teams = teams )
   return(rbd)
+}
+## simple coefficient calculating function 
+reg.coef <- function( data, team ) {
+  num <- which( colnames(data) == team )
+  fit <- lm(data = data, formula = data[,num] ~ date)
+  res <- fit$coef[2] ; names(res) <- team
+  return( res )
+}
+## for each team, return coefs, ranks
+coef_by_ranks <- function ( data, since ) {
+  teams <- names(data)[ sapply( data, is.numeric) ]
+  since <- as.Date( paste(format(data$date, "%Y"), since, sep="-") )
+  set <- subset(data, date >= since)
+  # fit linear regression on date
+  coefs <- sapply( teams, reg.coef, data = set, USE.NAMES = F)
+  # add ranks
+  start_rank <- length(teams) + 1 - rank( set[1, teams] )
+  end_rank <- length(teams) + 1 - rank( set[nrow(set), teams] )
+  res <- cbind( coefs, start_rank, end_rank )
+  return( res )
+}
+## calculating mse b/w real win rates and pythagorean rates
+pyth_real_mse <- function ( games, since = NULL, power = 2) {
+  pyth <- rate_func(games, rate = "pyth", power = power)
+  real <- rate_func(games, rate = "real")
+  if ( !is.null(since) ) {
+    real <- subset( real, date >= since )
+    pyth <- subset( pyth, date >= since )
+  }
+  real <- real[ ,sapply(real, is.numeric) ]
+  pyth <- pyth[ ,sapply(pyth, is.numeric) ]
+  mse <- colSums( ( real - pyth )^2 )
+  return(mse)
 }
 
 #### 2. plotting functions 
@@ -123,8 +160,11 @@ rate_plot <- function ( x, since = NULL ) {
 comp_plot <- function ( x, real, pyth, since = NULL ) {
   d <- data.frame(date = real$date, real = real[[x]], pyth = pyth[[x]])
   if ( !is.null(since) ) d <- subset(d, date >= since)
+  # mse value added
+  print( sum ( (d$real - d$pyth)^2 ) )
   from <- min(d$date) ; to <- max(d$date)
   melted <- melt(d, id.vars = "date")
+  # ggplot
   p.tmp <- ggplot(melted, aes(x=date, y=value, group=variable)) 
   p.tmp + geom_line(aes(colour=variable)) + xlab("Rate") + ylab("Date") + xlim(from,to)
 }
@@ -143,6 +183,7 @@ gamelist2010 <- gamelist.total( month, year="2010" ) ; games2010 <- subset ( gam
 
 ########################################################################################
 
+## real win rates
 rate2015 <- rate_func( games = games2015, rate = "real" )
 rate2014 <- rate_func( games = games2014, rate = "real" )
 rate2013 <- rate_func( games = games2013, rate = "real" )
@@ -150,22 +191,42 @@ rate2012 <- rate_func( games = games2012, rate = "real" )
 rate2011 <- rate_func( games = games2011, rate = "real" )
 rate2010 <- rate_func( games = games2010, rate = "real" )
 
-lm(data = rate2014, formula = KIA ~ date)
+## pythagorean win rates
+pyth2015 <- rate_func( games = games2015, rate = "real", power = 2) # with typical power index
 
-# examples
-p2014 <- rate_plot(rate2014, since = "2014-09-06")
+## regression coefficients for each year, each team
+coef2010 <- coef_by_ranks( rate2010, since = "09-06")
+coef2011 <- coef_by_ranks( rate2011, since = "09-06")
+coef2012 <- coef_by_ranks( rate2012, since = "09-06")
+coef2013 <- coef_by_ranks( rate2013, since = "09-06")
+coef2014 <- coef_by_ranks( rate2014, since = "08-20")
+
+## plot examples
+rate_plot(rate2014, since = "2014-09-06")
 rate_plot(rate2013, since = "2013-09-06") + stat_smooth(method = 'lm')
-rate_plot(rate2012, since = "2012-09-06")
+comp_plot( "kt", rate2015, pyth2015 )
 
+## find the indices for each team which make mse b/w real rates and pyth rates
+pow <- seq(from=0.1, to=3, by=0.1)
+mses <- lapply( pow, pyth_real_mse, games = games2015, since = "2015-06-01")
+find_index <- do.call(rbind, mses) ; row.names(find_index) <- pow
+indices <- c()
+for ( i in 1:10 ) {
+  indices[i] <- names( which( find_index[,i] == min(find_index[,i]) ) )
+}
+names(indices) <- colnames(find_index)
+indices
 
-comp_plot( "NC", real2, pyth2, since = "2015-04-30" )
-
-
-
-
+## power index variation
+pyth1 <- rate_func( games2015, rate = "pyth", power = 1)
+pyth3 <- rate_func( games2015, rate = "pyth", power = 3)
+pyth2.3 <- rate_func( games2015, rate = "pyth", power = 2.3)
+comp_plot("LG", rate2015, pyth2.3, since = "2015-06-01")
 
 ### https://en.wikipedia.org/wiki/Pythagorean_expectation
 
+
+#### 2. Classification 
 
 library(MASS) # for LDA, QDA, Logistic Reg
 library(nnet) # for Neural Network
