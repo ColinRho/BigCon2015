@@ -192,7 +192,7 @@ rate2011 <- rate_func( games = games2011, rate = "real" )
 rate2010 <- rate_func( games = games2010, rate = "real" )
 
 ## pythagorean win rates
-pyth2015 <- rate_func( games = games2015, rate = "real", power = 2) # with typical power index
+pyth2015 <- rate_func( games = games2015, rate = "pyth", power = 2) # with typical power index
 
 ## regression coefficients for each year, each team
 coef2010 <- coef_by_ranks( rate2010, since = "09-06")
