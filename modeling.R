@@ -204,7 +204,7 @@ coef2014 <- coef_by_ranks( rate2014, since = "08-20")
 ## plot examples
 rate_plot(rate2014, since = "2014-09-06")
 rate_plot(rate2013, since = "2013-09-06") + stat_smooth(method = 'lm')
-comp_plot( "kt", rate2015, pyth2015, since="2015-05-01"  )
+comp_plot( "LG", rate2015, pyth2015, since="2015-05-01"  )
 
 ## find the indices for each team which make mse b/w real rates and pyth rates
 pow <- seq(from=0.1, to=3, by=0.1)
@@ -253,7 +253,7 @@ selectvar <- function( x, pos = "p" ) { # x should be object produced by get.per
     v <- data.frame( ERA = x$ERA1, H = x$HA, BB = x$BBA, K = x$SOA, WHIP )
   }
   else {
-    SLG <- (x$H + 2*x$`X2B` + 3*x$`3B` + 4*x$HR)/x$AB # 장타율
+    SLG <- (x$H + 2*x$X2B + 3*x$X3B + 4*x$HR)/x$AB # 장타율
     OBP <- (x$H + x$BB + x$HBP)/(x$AB + x$BB + x$HBP) # 출루율, 원래는 분모에 SF(희생플라이) 도 더해줘야 함 
     v <- data.frame( AVG = x$AVG1, SLG, OBP, RBI = x$RBI, GDP = x$GDP)
   }
@@ -265,7 +265,7 @@ team.period.stat <- function ( team , pos, since, term ) {
   # for pitchers
   if ( pos == "p" ) { players <- subset(player_id, team == team  & pos == "p")$name }
   # for hitters
-  else { players <- subset(player_id, team == team_name & pos != "p")$name }
+  else { players <- subset(player_id, team == team & pos != "p")$name }
   players <- as.character( players[ players %in% ls(envir = .GlobalEnv) ] )
   x1 <- sapply( players, get.period, since = since, until = until )
   x2 <- as.data.frame( t( rowMeans(x1, na.rm = T) ) )
@@ -301,17 +301,35 @@ myregression <- function( team, pos, since, games, term1 = 30, term2 = 30) {
   fit <- lm( y ~ ., data = mat1 )
   return(fit)
 }
+## generating regression fitting results
+fits_gene <- function( games, pos, since, term1, term2 =25 ) {
+  # extract team names from gameset
+  teams <- names( which( table(games2015$away) != 1 ) )
+  # team loop 
+  for ( i in 1:length(teams) ) {
+    if ( pos == "p" ) posit <- { "pit" }
+    else { posit <- "hit" }
+    # make object name
+    fitname <- paste("fit", teams[i], posit, sep = "_" )
+    # fitting regression by 'myregression()'
+    fit <- myregression(teams[i], pos, since, games = games, term1 = term1, term2 = term2)
+    assign(fitname, fit, envir = .GlobalEnv )
+  }
+}
+
 
 ########################################################################################
+
+
+
 
 
 since <- opening[ format(opening, "%Y") == "2015"]
 since <- since + 1:100
 
 fit1 <- myregression("KIA", "p", since, games = games2015, term1 = 30, term2 = 25 )
-
-
-
+fits_gene ( games2015, pos = 'f', since, term1 = 20, term2 = 25 )
+fits_gene ( games2015, pos = 'p', since, term1 = 20, term2 = 25 )
 
 library(MASS) # for LDA, QDA, Logistic Reg
 library(nnet) # for Neural Network
