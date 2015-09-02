@@ -46,15 +46,15 @@ gamelist <- gamelist.total ( month, year = "2015" ) # 경기목록
 #### 주의: 매 경기마다 페이지를 크롤링해오기 때문에 시간이 꽤 소요됨(네트워크환경이 좋은상태를 권장)
 #### 혹은 월별로 저장하는 것을 권장
 
-lineupAug <- lineup.total(gamelist, by.month="08")
+lineupSep <- lineup.total(gamelist, by.month="09")
 lineup0$date <- as.Date(lineup0$date)
-lineup <- myrbind( list(lineup0, lineupAug) )
+lineup <- myrbind( list(lineup0, lineupSep) )
 
 ## 6. 각 경기별 라인업에 따라 선수들의 기록을 호출 
 gameset <- subset(gamelist, !is.na(score) )
 gameset <- gameset[-420,] # 올스타전 제외
 
-w <- 0.2  # 임의로 지정한 weight
+w <- 0.1  # 임의로 지정한 weight
 ## gameset과 lineup의 자료가 같은 날까지 일치해야 한다.
 # 원시 데이터
 dat1 <- aggr.stat(gameset, w)
@@ -77,5 +77,4 @@ for ( i in 3:35 ) {
 # 연승과 상대승률 변수 
 dat3$streak[dat3$streak >= 0 ] <- 1 ; dat3$streak[dat3$streak < 0 ] <- 0
 dat3$vs_rate[dat3$vs_rate >= 0.5 ] <- 1 ; dat3$vs_rate[dat3$vs_rate < 0.5 ] <- 0
-
 

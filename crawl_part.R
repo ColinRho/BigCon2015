@@ -68,21 +68,8 @@ cal.pitcher <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   dat[,5:p] <- apply(dat[,5:p], 2, convert.numeric)
   # 변수명 설정
   colnames(dat)[1:4] <- c("date","vs","type","result") ; colnames(dat)[p] <- "ERA"
-  colnames(dat)[8:13] <- c("HA","HRA","BBA","HBPA","SOA","RA") #서희추가
-  # 누적데이터 계산
-  if ( nrow(dat) != 1){
-    for ( row.num in 2:nrow(dat) ) {
-      dat[row.num,5:(p-1)] <- dat[row.num,5:(p-1)] + dat[(row.num-1),5:(p-1)]
-    }  
-  }
-  # 추가 지표 계산
-  WHIP <- round( (dat$HA + dat$BBA)/dat$IP, 3) # WHIP 이닝당 출루 허용
-  SOAPER <- round( (dat$SOA/9), 3) #서희추가
-  BBAPER <- round( (dat$BBA/9),3) #서희추가
-  LOBPER <- round( (dat$HA + dat$BBA + dat$HBPA -dat$R)/(dat$HA + dat$BBA +dat$HBPA -(1.4*dat$HRA)),3) #서희추가
-  dat <- data.frame( dat, WHIP, SOAPER, BBAPER, LOBPER )
-  # 당일 ERA 제거
-  return(dat[,-5])
+  colnames(dat)[8:13] <- c("HA","HRA","BBA","HBPA","SOA","RA")
+  return(dat)
 }
 ## numeric 변환 및 누적 데이터 계산 함수(타자용)
 cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이어야 한다.
@@ -91,22 +78,8 @@ cal.hitter <- function ( dat ) { # dat crawl.mod 결과로 출력된 행렬이�
   dat[,3:p] <- apply(dat[,3:p], 2, convert.numeric)
   # 변수명 설정
   colnames(dat)[1:2] <- c("date","vs") ; colnames(dat)[p] <- "AVG"
-  # 누적 데이터 계산
-  if( nrow(dat) != 1) {
-    for ( row.num in 2:nrow(dat) ) {
-      dat[row.num,3:(p-1)] <- dat[row.num,3:(p-1)] + dat[(row.num-1),3:(p-1)]
-    }
-  }
-  # 추가 지표 계산
-  SLG <- (dat$H + 2*dat$`2B` + 3*dat$`3B` + 4*dat$HR)/dat$AB # 장타율
-  OBP <- (dat$H + dat$BB + dat$HBP)/(dat$AB + dat$BB + dat$HBP) # 출루율, 원래는 분모에 SF(희생플라이) 도 더해줘야 함 
-  OPS <- SLG + OBP # OPS
-  SLG <- round(SLG, 3) ; OBP <- round(OBP, 3) ; OPS <- round(OPS, 3)
-  SBPER <- round(dat$SB/(dat$SB+dat$CS), 3) #서희추가 
-  
-  dat <- data.frame (dat, SLG, OBP, OPS, SBPER)
-  # 당일 타율 제거
-  return(dat[,-3])
+  colnames(dat)[7:8] <- c("X2B", "X3B")
+  return(dat)
 }
 ## output 형태 생성 함수
 crawl.kbo <- function(row.player, write.as.csv=F, year="2015") { # 나중에 다른연도 필요할 수도...

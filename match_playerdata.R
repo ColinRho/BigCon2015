@@ -37,6 +37,29 @@ get.lineup <- function( game ) { # game은 gamelist의 한 row벡터
   mat <- subset(lineup, date == d & ( team == aw | team == ho  ) )
   return(mat)
 }
+## adding additional stats for hitters & pitchers
+add.stat.hit <- function( row ) { # row should be an object from get.latest()
+  # calculating additional stats
+  AVG <- round( row[,'H'] / row[,'AB'], 3) # hit average
+  SLG <- round( (row[,'H'] + 2*row[,'X2B'] + 3*row[,'X3B'] + 4*row[,'HR'])/row[,'AB'], 3)
+  OBP <- round( (row[,'H'] + row[,'BB'] + row[,'HBP'])/(row[,'AB'] + row[,'BB'] + row[,'HBP']), 3) 
+  OPS <- SLG + OBP # OPS
+  SBPER <- round( row[,'SB']/(row[,'SB']+row[,'CS']), 3) # stolen base success percentage 
+  # combining
+  res <- data.frame( row, AVG, SLG, OBP, OPS, SBPER)
+  return( res )
+}
+add.stat.pit <- function( row ) { # row should be an object from get.latest()
+  # calculating additional stats
+  ERA <- round( row[,'ER'] * 9 / row[,'IP'], 3)
+  WHIP <- round( (row[,'HA'] + row[,'BBA'])/row[,'IP'], 3) 
+  SOAPER <- round( (row[,'SOA']/9), 3) 
+  BBAPER <- round( (row[,'BBA']/9),3) 
+  LOBPER <- round( (row[,'HA'] + row[,'BBA'] + row[,'HBPA'] - row[,'RA'])/(row[,'HA'] + row[,'BBA'] + row[,'HBPA'] -(1.4*row[,'HRA'])),3) 
+  # combining
+  res <- data.frame( row, ERA, WHIP, SOAPER, BBAPER, LOBPER )
+  return( res )
+}
 ## 각 선수마다 경기 전날까지의 누적기록을 출력하는 함수
 get.latest <- function ( player, gameDate ) {
   # 데이터 불러오기, crawl.loop 등으로 이미 GlobalEnv에 선수이름으로 된 데이터 행렬이 필요함
@@ -45,21 +68,30 @@ get.latest <- function ( player, gameDate ) {
   lgc <- dat$date < gameDate
   # 해당 경기일 전까지 누적데이터가 없는 경우(투수)
   if ( sum(lgc) == 0 & subset(player_id, name==player)$pos == "p") { 
-    res <- matrix( rep(0, length.out=ncol(양현종)), nrow=1 )
-    colnames(res) <- colnames(양현종)
+    res <- as.data.frame( matrix( rep(0, length.out=ncol(양현종)), nrow=1 ) )
+    colnames(res) <- colnames(양현종) ; res$date <- gameDate
+    # manually delete needless variables
+    res <- res[-c(2:5, length(res))]
   }
   # 해당 경기일 전까지 누적데이터가 없는 경우(타자)
   else if ( sum(lgc) == 0 & subset(player_id, name==player)$pos != "p") {
-    res <- matrix( rep(0, length.out=ncol(박병호)), nrow=1 ) 
-    colnames(res) <- colnames(박병호)
+    res <- as.data.frame( matrix( rep(0, length.out=ncol(박병호)), nrow=1 ) )
+    colnames(res) <- colnames(박병호) ; res$date <- gameDate
+    # manually delete needless variables
+    res <- res[-c(2,3,length(res))]
   }
   # 투수대표 양현종, 타자대표 박병호의 데이터가 있다는 가정하에...
   # 경기기록이 있는 경우
   else { 
-    v <- dat$date[lgc] 
-    res <- subset(dat, date == max(v)) # 하나의 row
+    v <- subset(dat, date < gameDate) 
+    v2 <- colSums( v[ sapply(v, is.numeric) ], na.rm = T ) # 하나의 row
+    # deleting AVG1, ERA1, AVG, ERA ... will be calculated later
+    res <- data.frame( date = dat$date[max(which(lgc))] , t( v2[-c(1,length(v2))] ) )
   }
   row.names(res) <- player
+  ## adding additional stats
+  if ( player %in% subset(player_id, pos == "p")$name ) { res <- add.stat.pit(res) }
+  else { res <- add.stat.hit(res) }
   return(as.data.frame(res))
 }
 ## 경기가 주어졌을 때 그 날의 전체 선발 라인업과 그 선수들의 전날까지 기록을 불러오는 함수

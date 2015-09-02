@@ -187,7 +187,7 @@ gamelist2010 <- gamelist.total( month, year="2010" ) ; games2010 <- subset ( gam
 rate2015 <- rate_func( games = games2015, rate = "real" )
 rate2014 <- rate_func( games = games2014, rate = "real" )
 rate2013 <- rate_func( games = games2013, rate = "real" )
-rate2012 <- rate_func( games = games2012, rate = "real" )
+rate2012 <- rate_fungc( games = games2012, rate = "real" )
 rate2011 <- rate_func( games = games2011, rate = "real" )
 rate2010 <- rate_func( games = games2010, rate = "real" )
 
@@ -204,7 +204,7 @@ coef2014 <- coef_by_ranks( rate2014, since = "08-20")
 ## plot examples
 rate_plot(rate2014, since = "2014-09-06")
 rate_plot(rate2013, since = "2013-09-06") + stat_smooth(method = 'lm')
-comp_plot( "kt", rate2015, pyth2015 )
+comp_plot( "kt", rate2015, pyth2015, since="2015-05-01"  )
 
 ## find the indices for each team which make mse b/w real rates and pyth rates
 pow <- seq(from=0.1, to=3, by=0.1)
@@ -226,7 +226,92 @@ comp_plot("LG", rate2015, pyth2.3, since = "2015-06-01")
 ### https://en.wikipedia.org/wiki/Pythagorean_expectation
 
 
-#### 2. Classification 
+#### 2. Linear Regression 
+
+
+####### functions ######################################################################
+
+## function calling data of player during given period(since, until)
+get.period <- function( player, since, until ) {
+  # call data set of player
+  dat <- get(player, envir = .GlobalEnv)
+  dat <- subset(dat, date >= since & date <= until)
+  dat <- dat[ sapply(dat, is.numeric) ]
+  # if no played game in given period
+  if ( nrow(dat) == 0 ) { 
+    v <- rep(NA, length.out = ncol(dat)) ; names(v) <- colnames(dat)  
+  }
+  else v <- colSums( dat, na.rm = T)
+  # adding number of games
+  v <- c(v, G = nrow(dat))
+  return(v)
+}
+## select or produce variables considered important
+selectvar <- function( x, pos = "p" ) { # x should be object produced by get.period()
+  if ( pos == "p" ) {
+    WHIP <- round( ( x$HA + x$BBA + x$HBPA)/x$IP, 3) # WHIP 이닝당 출루 허용 
+    v <- data.frame( ERA = x$ERA1, H = x$HA, BB = x$BBA, K = x$SOA, WHIP )
+  }
+  else {
+    SLG <- (x$H + 2*x$`X2B` + 3*x$`3B` + 4*x$HR)/x$AB # 장타율
+    OBP <- (x$H + x$BB + x$HBP)/(x$AB + x$BB + x$HBP) # 출루율, 원래는 분모에 SF(희생플라이) 도 더해줘야 함 
+    v <- data.frame( AVG = x$AVG1, SLG, OBP, RBI = x$RBI, GDP = x$GDP)
+  }
+  return(v)
+}
+## comprehensive function to get teams' stat
+team.period.stat <- function ( team , pos, since, term ) {
+  since <- as.Date(since) ; until <- since + term
+  # for pitchers
+  if ( pos == "p" ) { players <- subset(player_id, team == team  & pos == "p")$name }
+  # for hitters
+  else { players <- subset(player_id, team == team_name & pos != "p")$name }
+  players <- as.character( players[ players %in% ls(envir = .GlobalEnv) ] )
+  x1 <- sapply( players, get.period, since = since, until = until )
+  x2 <- as.data.frame( t( rowMeans(x1, na.rm = T) ) )
+  y <- selectvar(x2, pos = pos)
+  return(y)
+}
+## setting x and y variables to conduct regression analysis
+settingxy <- function ( team, pos, since, games, term1, term2  ) 
+  # term1 represents term to cumulate x variable( team stat ), 
+  # term2 represnets term to cumulate y variable( team runs )
+  # x should be prior to y in time manner
+{
+  # time values
+  x.since <- as.Date(since) ; x.cum.term <- since + term1
+  y.since <- x.cum.term + 1 ; y.cum.term <- y.since + term2
+  # y variable, runs
+  runs <- runs_by_team( team, games = games )
+  y <- subset( runs, date >= y.since & date <= y.cum.term )
+  # for pitchers, y should be run allowed
+  if ( pos == "p" ) { y <- y$run_allowed }
+  # on the other hand, run scored for hitters
+  else { y <- y$run_scored }
+  y <- sum(y)
+  # x variable, stats
+  x <- team.period.stat( team = team, pos = pos, since = x.since, term = term1 )
+  res <- cbind(x, y)
+  return(as.data.frame(res))
+}
+## regression conducting function, change variables diversely
+myregression <- function( team, pos, since, games, term1 = 30, term2 = 30) {
+  mat1 <- lapply( since, settingxy, team = team,  pos = pos, games = games, term1 = term1, term2 = term2 )
+  mat1 <- myrbind(mat1)
+  fit <- lm( y ~ ., data = mat1 )
+  return(fit)
+}
+
+########################################################################################
+
+
+since <- opening[ format(opening, "%Y") == "2015"]
+since <- since + 1:100
+
+fit1 <- myregression("KIA", "p", since, games = games2015, term1 = 30, term2 = 25 )
+
+
+
 
 library(MASS) # for LDA, QDA, Logistic Reg
 library(nnet) # for Neural Network
