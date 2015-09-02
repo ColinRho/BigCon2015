@@ -263,9 +263,10 @@ selectvar <- function( x, pos = "p" ) { # x should be object produced by get.per
 team.period.stat <- function ( team , pos, since, term ) {
   since <- as.Date(since) ; until <- since + term
   # for pitchers
-  if ( pos == "p" ) { players <- subset(player_id, team == team  & pos == "p")$name }
+  if ( pos == "p" ) { players <- subset( player_id[ player_id$team == team ,], pos == "p")$name }
   # for hitters
-  else { players <- subset(player_id, team == team & pos != "p")$name }
+  else { players <- subset( player_id[ player_id$team == team ,], pos != "p")$name }
+  
   players <- as.character( players[ players %in% ls(envir = .GlobalEnv) ] )
   x1 <- sapply( players, get.period, since = since, until = until )
   x2 <- as.data.frame( t( rowMeans(x1, na.rm = T) ) )
