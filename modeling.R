@@ -2,6 +2,7 @@
 
 library(ggplot2)
 library(reshape2)
+library(cvTools)
 
 ####### functions ######################################################################
 
@@ -231,7 +232,7 @@ comp_plot("LG", rate2015, pyth2.3, since = "2015-06-01")
 ####### functions ######################################################################
 
 ## function calling data of player during given period(since, until)
-get.period <- function( player, since, until ) {
+get.period <- function( player, since, until, trade.in, trade.out ) {
   if ( player %in% trade.in ) { since <- subset(trade_2015, name == player)$date }
   else if ( player %in% trade.out ) { until <- subset(trade_2015, name == player)$date }
   # call data set of player
@@ -275,7 +276,7 @@ team.period.stat <- function ( team , pos, since, term ) {
   players <- c(as.character(players), as.character(trade.out$name))
   players <- players[ players %in% ls(envir = .GlobalEnv) ]
   # get stats
-  x1 <- sapply( players, get.period, since = since, until = until )
+  x1 <- sapply( players, get.period, since = since, until = until, trade.in = trade.in, trade.out = trade.out )
   x2 <- as.data.frame( t( rowMeans(x1, na.rm = T) ) )
   y <- selectvar(x2, pos = pos)
   return(y)
@@ -304,9 +305,13 @@ settingxy <- function ( team, pos, since, games, term1, term2  )
 }
 ## regression conducting function, change variables diversely
 myregression <- function( team, pos, since, games, term1 = 30, term2 = 30) {
+  # data generating
   mat1 <- lapply( since, settingxy, team = team,  pos = pos, games = games, term1 = term1, term2 = term2 )
   mat1 <- myrbind(mat1)
+  # regression fitting
   fit <- lm( y ~ ., data = mat1 )
+  # crossvalidation 
+  fit$cv <- cvFit(fit, data = mat1, y = mat1$y, K = 20) 
   return(fit)
 }
 ## generating regression fitting results
@@ -328,15 +333,15 @@ fits_gene <- function( games, pos, since, term1, term2 =25 ) {
 ########################################################################################
 
 since <- opening[ format(opening, "%Y") == "2015"]
-since <- since + 1:100
+since <- since + 1:115
 
 ## trade list modifying
 trade_2015$date <- as.Date(trade_2015$date)
 trade_2015$name <- apply( trade_2015[,c(2,5)], 1, function(x) change.homonym( x[1], x[2]) )
 
-fit1 <- myregression("KIA", "f", since, games = games2015, term1 = 30, term2 = 25 )
-fits_gene ( games2015, pos = 'f', since, term1 = 20, term2 = 25 )
-fits_gene ( games2015, pos = 'p', since, term1 = 20, term2 = 25 )
+fit1 <- myregression("KIA", "f", since, games = games2015, term1 = 30, term2 = 23 )
+fits_gene ( games2015, pos = 'f', since, term1 = 20, term2 = 23 )
+fits_gene ( games2015, pos = 'p', since, term1 = 20, term2 = 23 )
 
 
 
