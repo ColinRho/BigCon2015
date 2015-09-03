@@ -188,7 +188,7 @@ gamelist2010 <- gamelist.total( month, year="2010" ) ; games2010 <- subset ( gam
 rate2015 <- rate_func( games = games2015, rate = "real" )
 rate2014 <- rate_func( games = games2014, rate = "real" )
 rate2013 <- rate_func( games = games2013, rate = "real" )
-rate2012 <- rate_fungc( games = games2012, rate = "real" )
+rate2012 <- rate_func( games = games2012, rate = "real" )
 rate2011 <- rate_func( games = games2011, rate = "real" )
 rate2010 <- rate_func( games = games2010, rate = "real" )
 
@@ -214,7 +214,7 @@ find_index <- do.call(rbind, mses) ; row.names(find_index) <- pow
 indices <- c()
 for ( i in 1:10 ) {
   indices[i] <- names( which( find_index[,i] == min(find_index[,i]) ) )
-}
+} 
 names(indices) <- colnames(find_index)
 indices
 
@@ -339,7 +339,7 @@ since <- since + 1:115
 trade_2015$date <- as.Date(trade_2015$date)
 trade_2015$name <- apply( trade_2015[,c(2,5)], 1, function(x) change.homonym( x[1], x[2]) )
 
-fit1 <- myregression("KIA", "f", since, games = games2015, term1 = 30, term2 = 23 )
+fit1 <- myregression("KIA", "f", since, games = games2015, term1 = 20, term2 = 23 )
 fits_gene ( games2015, pos = 'f', since, term1 = 20, term2 = 23 )
 fits_gene ( games2015, pos = 'p', since, term1 = 20, term2 = 23 )
 
