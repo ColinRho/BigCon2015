@@ -228,11 +228,12 @@ comp_plot("LG", rate2015, pyth2.3, since = "2015-06-01")
 
 #### 2. Linear Regression 
 
-
 ####### functions ######################################################################
 
 ## function calling data of player during given period(since, until)
 get.period <- function( player, since, until ) {
+  if ( player %in% trade.in ) { since <- subset(trade_2015, name == player)$date }
+  else if ( player %in% trade.out ) { until <- subset(trade_2015, name == player)$date }
   # call data set of player
   dat <- get(player, envir = .GlobalEnv)
   dat <- subset(dat, date >= since & date <= until)
@@ -266,8 +267,14 @@ team.period.stat <- function ( team , pos, since, term ) {
   if ( pos == "p" ) { players <- subset( player_id[ player_id$team == team ,], pos == "p")$name }
   # for hitters
   else { players <- subset( player_id[ player_id$team == team ,], pos != "p")$name }
-  
-  players <- as.character( players[ players %in% ls(envir = .GlobalEnv) ] )
+  # consider trade during season
+  trade.in <- subset( trade_2015, name %in% players & date < until )
+  if ( pos == "p" ) { trade.out <- subset( trade_2015, from == team & pos == "p" & date > since ) }
+  else { trade.out <- subset( trade_2015, from == team & pos != "p" & date > since ) }
+  # including players who traded out during season
+  players <- c(as.character(players), as.character(trade.out$name))
+  players <- players[ players %in% ls(envir = .GlobalEnv) ]
+  # get stats
   x1 <- sapply( players, get.period, since = since, until = until )
   x2 <- as.data.frame( t( rowMeans(x1, na.rm = T) ) )
   y <- selectvar(x2, pos = pos)
@@ -318,12 +325,7 @@ fits_gene <- function( games, pos, since, term1, term2 =25 ) {
   }
 }
 
-
 ########################################################################################
-
-
-
-
 
 since <- opening[ format(opening, "%Y") == "2015"]
 since <- since + 1:100
