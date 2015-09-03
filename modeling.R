@@ -330,9 +330,15 @@ fits_gene <- function( games, pos, since, term1, term2 =25 ) {
 since <- opening[ format(opening, "%Y") == "2015"]
 since <- since + 1:100
 
-fit1 <- myregression("KIA", "p", since, games = games2015, term1 = 30, term2 = 25 )
+## trade list modifying
+trade_2015$date <- as.Date(trade_2015$date)
+trade_2015$name <- apply( trade_2015[,c(2,5)], 1, function(x) change.homonym( x[1], x[2]) )
+
+fit1 <- myregression("KIA", "f", since, games = games2015, term1 = 30, term2 = 25 )
 fits_gene ( games2015, pos = 'f', since, term1 = 20, term2 = 25 )
 fits_gene ( games2015, pos = 'p', since, term1 = 20, term2 = 25 )
+
+
 
 library(MASS) # for LDA, QDA, Logistic Reg
 library(nnet) # for Neural Network
