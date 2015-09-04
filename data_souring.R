@@ -21,6 +21,11 @@ for ( i in 1:length(filename)) {
 samename <- homonym(player_id)$samename # 동명이인 리스트
 player_id <- homonym(player_id)$dat # 수정된 선수목록
 
+## trade list modifying
+trade_2015$date <- as.Date(trade_2015$date)
+trade_2015$name <- apply( trade_2015[,c(2,5)], 1, function(x) change.homonym( x[1], x[2]) )
+
+
 ## 3. 2014년도 개인 데이터
 a <- subset( pitcher_select, select=c(name, team) )
 pitcher_select$name <- apply( a, 1, function(x) change.homonym(x[1], x[2] ) )

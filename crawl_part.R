@@ -67,7 +67,7 @@ cal.pitcher <- function ( dat ) { # dat should be a matrix from crawl.mod()
   dat$IP <- round(convert.IP(dat$IP), 3)
   dat[,5:p] <- apply(dat[,5:p], 2, convert.numeric)
   # variable names setting
-  colnames(dat)[1:4] <- c("date","vs","type","result") ; colnames(dat)[p] <- "ERA"
+  colnames(dat)[1:4] <- c("date","vs","type","result")
   colnames(dat)[8:13] <- c("HA","HRA","BBA","HBPA","SOA","RA")
   return(dat)
 }
@@ -77,7 +77,7 @@ cal.hitter <- function ( dat ) { # dat should be a matrix from crawl.mod()
   # numeric conversion
   dat[,3:p] <- apply(dat[,3:p], 2, convert.numeric)
   # variable names setting
-  colnames(dat)[1:2] <- c("date","vs") ; colnames(dat)[p] <- "AVG"
+  colnames(dat)[1:2] <- c("date","vs") 
   colnames(dat)[7:8] <- c("X2B", "X3B")
   return(dat)
 }

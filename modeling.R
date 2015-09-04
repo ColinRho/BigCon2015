@@ -167,7 +167,7 @@ comp_plot <- function ( x, real, pyth, since = NULL ) {
   melted <- melt(d, id.vars = "date")
   # ggplot
   p.tmp <- ggplot(melted, aes(x=date, y=value, group=variable)) 
-  p.tmp + geom_line(aes(colour=variable)) + xlab("Rate") + ylab("Date") + xlim(from,to)
+  p.tmp + geom_line(aes(colour=variable)) + xlab("Rate") + ylab("Date") + xlim(from,to) 
 }
 
 ########################################################################################
@@ -209,7 +209,7 @@ comp_plot( "LG", rate2015, pyth2015, since="2015-05-01"  )
 
 ## find the indices for each team which make mse b/w real rates and pyth rates
 pow <- seq(from=0.1, to=3, by=0.1)
-mses <- lapply( pow, pyth_real_mse, games = games2015, since = "2015-06-01")
+mses <- lapply( pow, pyth_real_mse, games = games2015, since = "2015-08-01")
 find_index <- do.call(rbind, mses) ; row.names(find_index) <- pow
 indices <- c()
 for ( i in 1:10 ) {
@@ -219,10 +219,11 @@ names(indices) <- colnames(find_index)
 indices
 
 ## power index variation
+pyth0.9 <- rate_func( games2015, rate = "pyth", power = 0.9)
 pyth1 <- rate_func( games2015, rate = "pyth", power = 1)
 pyth3 <- rate_func( games2015, rate = "pyth", power = 3)
 pyth2.3 <- rate_func( games2015, rate = "pyth", power = 2.3)
-comp_plot("LG", rate2015, pyth2.3, since = "2015-06-01")
+comp_plot("넥센", rate2015, pyth1, since = "2015-08-01")
 
 ### https://en.wikipedia.org/wiki/Pythagorean_expectation
 
@@ -232,7 +233,7 @@ comp_plot("LG", rate2015, pyth2.3, since = "2015-06-01")
 ####### functions ######################################################################
 
 ## function calling data of player during given period(since, until)
-get.period <- function( player, since, until, trade.in, trade.out ) {
+get.period <- function( player, since, until, trade.in = NULL, trade.out = NULL ) {
   if ( player %in% trade.in ) { since <- subset(trade_2015, name == player)$date }
   else if ( player %in% trade.out ) { until <- subset(trade_2015, name == player)$date }
   # call data set of player
@@ -244,20 +245,24 @@ get.period <- function( player, since, until, trade.in, trade.out ) {
     v <- rep(NA, length.out = ncol(dat)) ; names(v) <- colnames(dat)  
   }
   else v <- colSums( dat, na.rm = T)
-  # adding number of games
-  v <- c(v, G = nrow(dat))
   return(v)
 }
 ## select or produce variables considered important
 selectvar <- function( x, pos = "p" ) { # x should be object produced by get.period()
+  # delete total AVG and ERA
+  x <- x[-length(x)]
+  # additional stats for pitchers
   if ( pos == "p" ) {
-    WHIP <- round( ( x$HA + x$BBA + x$HBPA)/x$IP, 3) # WHIP 이닝당 출루 허용 
-    v <- data.frame( ERA = x$ERA1, H = x$HA, BB = x$BBA, K = x$SOA, WHIP )
+    WHIP <- (x$HA + x$BBA + x$HBPA)/x$IP 
+    LOBPER <- (x$HA + x$BBA + x$HBPA - x$RA)/(x$HA + x$BBA + x$HBPA -(1.4*x$HRA)) 
+    v <- data.frame( x, WHIP, LOBPER )
   }
+  # additional stats for hitters
   else {
-    SLG <- (x$H + 2*x$X2B + 3*x$X3B + 4*x$HR)/x$AB # 장타율
-    OBP <- (x$H + x$BB + x$HBP)/(x$AB + x$BB + x$HBP) # 출루율, 원래는 분모에 SF(희생플라이) 도 더해줘야 함 
-    v <- data.frame( AVG = x$AVG1, SLG, OBP, RBI = x$RBI, GDP = x$GDP)
+    SLG <- (x$H + 2*x$X2B + 3*x$X3B + 4*x$HR)/x$AB 
+    OBP <- (x$H + x$BB + x$HBP)/(x$AB + x$BB + x$HBP) 
+    SBPER <- x$SB/(x$SB + x$CS)
+    v <- data.frame( x, SLG, OBP, SBPER )
   }
   return(v)
 }
@@ -277,7 +282,7 @@ team.period.stat <- function ( team , pos, since, term ) {
   players <- players[ players %in% ls(envir = .GlobalEnv) ]
   # get stats
   x1 <- sapply( players, get.period, since = since, until = until, trade.in = trade.in, trade.out = trade.out )
-  x2 <- as.data.frame( t( rowMeans(x1, na.rm = T) ) )
+  x2 <- as.data.frame( t( rowSums(x1, na.rm = T) ) )
   y <- selectvar(x2, pos = pos)
   return(y)
 }
@@ -303,6 +308,13 @@ settingxy <- function ( team, pos, since, games, term1, term2  )
   res <- cbind(x, y)
   return(as.data.frame(res))
 }
+## data generating
+mat_func <- function( team, pos, since, games, term1 = 20, term2 = 23) {
+  mat <- lapply( since, settingxy, team = team,  pos = pos, games = games, term1 = term1, term2 = term2 )
+  mat <- myrbind(mat)
+  return(mat)
+}
+
 ## regression conducting function, change variables diversely
 myregression <- function( team, pos, since, games, term1 = 30, term2 = 30) {
   # data generating
@@ -333,13 +345,14 @@ fits_gene <- function( games, pos, since, term1, term2 =25 ) {
 ########################################################################################
 
 since <- opening[ format(opening, "%Y") == "2015"]
-since <- since + 1:115
+since <- since + 1:100
 
-## trade list modifying
-trade_2015$date <- as.Date(trade_2015$date)
-trade_2015$name <- apply( trade_2015[,c(2,5)], 1, function(x) change.homonym( x[1], x[2]) )
+fit_넥센_pit <- myregression("넥센", "p", since, games = games2015, term1 = 20, term2 = 23 )
+fit_두산_pit <- myregression("두산", "p", since, games = games2015, term1 = 20, term2 = 23 )
+fit_롯데_pit <- myregression("롯데", "p", since, games = games2015, term1 = 20, term2 = 23 )
+fit_삼성_pit <- myregression("삼성", "p", since, games = games2015, term1 = 20, term2 = 23 )
+fit_한화_pit <- myregression("한화", "p", since, games = games2015, term1 = 20, term2 = 23 )
 
-fit1 <- myregression("KIA", "f", since, games = games2015, term1 = 20, term2 = 23 )
 fits_gene ( games2015, pos = 'f', since, term1 = 20, term2 = 23 )
 fits_gene ( games2015, pos = 'p', since, term1 = 20, term2 = 23 )
 
