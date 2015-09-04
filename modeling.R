@@ -2,6 +2,7 @@
 
 library(ggplot2)
 library(reshape2)
+library(randomForest)
 library(cvTools)
 
 ####### functions ######################################################################
@@ -228,10 +229,17 @@ comp_plot("넥센", rate2015, pyth1, since = "2015-08-01")
 ### https://en.wikipedia.org/wiki/Pythagorean_expectation
 
 
-#### 2. Linear Regression 
+#### 2. Regression 
 
 ####### functions ######################################################################
 
+## producing since vecotr
+get.since <- function( term1 ) {
+  min.since <- opening[ format(opening, "%Y") == "2015"] - 1
+  max.since <- Sys.Date() - 22 - term1
+  since <- min.since + 1:as.numeric(max.since - min.since)
+  return(since)
+}
 ## function calling data of player during given period(since, until)
 get.period <- function( player, since, until, trade.in = NULL, trade.out = NULL ) {
   if ( player %in% trade.in ) { since <- subset(trade_2015, name == player)$date }
@@ -293,8 +301,8 @@ settingxy <- function ( team, pos, since, games, term1, term2  )
   # x should be prior to y in time manner
 {
   # time values
-  x.since <- as.Date(since) ; x.cum.term <- since + term1
-  y.since <- x.cum.term + 1 ; y.cum.term <- y.since + term2
+  x.since <- as.Date(since) ; x.cum.term <- x.since + (term1 - 1)
+  y.since <- x.cum.term + 1 ; y.cum.term <- y.since + (term2 - 1)
   # y variable, runs
   runs <- runs_by_team( team, games = games )
   y <- subset( runs, date >= y.since & date <= y.cum.term )
@@ -315,60 +323,6 @@ mat_func <- function( team, pos, since, games, term1 = 20, term2 = 23) {
   return(mat)
 }
 
-## regression conducting function, change variables diversely
-myregression <- function( team, pos, since, games, term1 = 30, term2 = 30) {
-  # data generating
-  mat1 <- lapply( since, settingxy, team = team,  pos = pos, games = games, term1 = term1, term2 = term2 )
-  mat1 <- myrbind(mat1)
-  # regression fitting
-  fit <- lm( y ~ ., data = mat1 )
-  # crossvalidation 
-  fit$cv <- cvFit(fit, data = mat1, y = mat1$y, K = 20) 
-  return(fit)
-}
-## generating regression fitting results
-fits_gene <- function( games, pos, since, term1, term2 =25 ) {
-  # extract team names from gameset
-  teams <- names( which( table(games2015$away) != 1 ) )
-  # team loop 
-  for ( i in 1:length(teams) ) {
-    if ( pos == "p" ) posit <- { "pit" }
-    else { posit <- "hit" }
-    # make object name
-    fitname <- paste("fit", teams[i], posit, sep = "_" )
-    # fitting regression by 'myregression()'
-    fit <- myregression(teams[i], pos, since, games = games, term1 = term1, term2 = term2)
-    assign(fitname, fit, envir = .GlobalEnv )
-  }
-}
-
 ########################################################################################
-
-since <- opening[ format(opening, "%Y") == "2015"]
-since <- since + 1:100
-
-fit_넥센_pit <- myregression("넥센", "p", since, games = games2015, term1 = 20, term2 = 23 )
-fit_두산_pit <- myregression("두산", "p", since, games = games2015, term1 = 20, term2 = 23 )
-fit_롯데_pit <- myregression("롯데", "p", since, games = games2015, term1 = 20, term2 = 23 )
-fit_삼성_pit <- myregression("삼성", "p", since, games = games2015, term1 = 20, term2 = 23 )
-fit_한화_pit <- myregression("한화", "p", since, games = games2015, term1 = 20, term2 = 23 )
-
-fits_gene ( games2015, pos = 'f', since, term1 = 20, term2 = 23 )
-fits_gene ( games2015, pos = 'p', since, term1 = 20, term2 = 23 )
-
-
-
-library(MASS) # for LDA, QDA, Logistic Reg
-library(nnet) # for Neural Network
-library(e1071) # for SVM
-library(rpart) # for DT
-
-## LDA
-## QDA 
-## Logistic Regression
-## Decision Tree(CART or ...)
-## Neural Network
-## SVM
-## Random Forest
 
 
