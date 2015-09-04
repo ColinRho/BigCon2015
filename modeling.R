@@ -1,10 +1,5 @@
 #### 1. Pythagorean Expectation and Time Series Analysis
 
-library(ggplot2)
-library(reshape2)
-library(randomForest)
-library(cvTools)
-
 ####### functions ######################################################################
 
 #### 1. win rate calculation functions
@@ -147,6 +142,21 @@ pyth_real_mse <- function ( games, since = NULL, power = 2) {
   mse <- colSums( ( real - pyth )^2 )
   return(mse)
 }
+## find the indices for each team which make mse b/w real rates and pyth rates
+pyth_index <- function ( since , games = gamse2015) {
+  # possible power index range
+  pow <- seq(from=0.1, to=3, by=0.1)
+  # mse b/w real rate and pyth rate
+  mses <- lapply( pow, pyth_real_mse, games = game, since = since)
+  find_index <- do.call(rbind, mses) ; row.names(find_index) <- pow
+  indices <- c()
+  # which minimize mse
+  for ( i in 1:10 ) {
+    indices[i] <- names( which( find_index[,i] == min(find_index[,i]) ) )
+  } 
+  names(indices) <- colnames(find_index)
+  indices
+}
 
 #### 2. plotting functions 
 ## draw time series plot by ggplot
@@ -173,63 +183,7 @@ comp_plot <- function ( x, real, pyth, since = NULL ) {
 
 ########################################################################################
 
-####### gamelists #######################################################################
-
-month <- c("03","04","05","06","07","08","09")
-gamelist2015 <- gamelist.total( month, year="2015" ) ; games2015 <- subset ( gamelist2015, !is.na(score) )
-gamelist2014 <- gamelist.total( month, year="2014" ) ; games2014 <- subset ( gamelist2014, !is.na(score) )
-gamelist2013 <- gamelist.total( month, year="2013" ) ; games2013 <- subset ( gamelist2013, !is.na(score) )
-gamelist2012 <- gamelist.total( month, year="2012" ) ; games2012 <- subset ( gamelist2012, !is.na(score) )
-gamelist2011 <- gamelist.total( month, year="2011" ) ; games2011 <- subset ( gamelist2011, !is.na(score) )
-gamelist2010 <- gamelist.total( month, year="2010" ) ; games2010 <- subset ( gamelist2010, !is.na(score) )
-
-########################################################################################
-
-## real win rates
-rate2015 <- rate_func( games = games2015, rate = "real" )
-rate2014 <- rate_func( games = games2014, rate = "real" )
-rate2013 <- rate_func( games = games2013, rate = "real" )
-rate2012 <- rate_func( games = games2012, rate = "real" )
-rate2011 <- rate_func( games = games2011, rate = "real" )
-rate2010 <- rate_func( games = games2010, rate = "real" )
-
-## pythagorean win rates
-pyth2015 <- rate_func( games = games2015, rate = "pyth", power = 2) # with typical power index
-
-## regression coefficients for each year, each team
-coef2010 <- coef_by_ranks( rate2010, since = "09-06")
-coef2011 <- coef_by_ranks( rate2011, since = "09-06")
-coef2012 <- coef_by_ranks( rate2012, since = "09-06")
-coef2013 <- coef_by_ranks( rate2013, since = "09-06")
-coef2014 <- coef_by_ranks( rate2014, since = "08-20")
-
-## plot examples
-rate_plot(rate2014, since = "2014-09-06")
-rate_plot(rate2013, since = "2013-09-06") + stat_smooth(method = 'lm')
-comp_plot( "LG", rate2015, pyth2015, since="2015-05-01"  )
-
-## find the indices for each team which make mse b/w real rates and pyth rates
-pow <- seq(from=0.1, to=3, by=0.1)
-mses <- lapply( pow, pyth_real_mse, games = games2015, since = "2015-08-01")
-find_index <- do.call(rbind, mses) ; row.names(find_index) <- pow
-indices <- c()
-for ( i in 1:10 ) {
-  indices[i] <- names( which( find_index[,i] == min(find_index[,i]) ) )
-} 
-names(indices) <- colnames(find_index)
-indices
-
-## power index variation
-pyth0.9 <- rate_func( games2015, rate = "pyth", power = 0.9)
-pyth1 <- rate_func( games2015, rate = "pyth", power = 1)
-pyth3 <- rate_func( games2015, rate = "pyth", power = 3)
-pyth2.3 <- rate_func( games2015, rate = "pyth", power = 2.3)
-comp_plot("넥센", rate2015, pyth1, since = "2015-08-01")
-
-### https://en.wikipedia.org/wiki/Pythagorean_expectation
-
-
-#### 2. Regression 
+#### 2. Regression Setting 
 
 ####### functions ######################################################################
 
@@ -324,5 +278,4 @@ mat_func <- function( team, pos, since, games, term1 = 20, term2 = 23) {
 }
 
 ########################################################################################
-
 
