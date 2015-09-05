@@ -170,8 +170,8 @@ rate_plot <- function ( x, since = NULL ) {
   p.tmp + geom_line(aes(colour=variable)) + xlab("Date") + ylab("Rate")
 }
 ## comparing real winning rates and pyth. expectation rates-
-comp_plot <- function ( x, real, pyth, since = NULL ) {
-  d <- data.frame(date = real$date, real = real[[x]], pyth = pyth[[x]])
+comp_plot <- function ( team, real, pyth, since = NULL ) {
+  d <- data.frame(date = real$date, real = real[[team]], pyth = pyth[[team]])
   if ( !is.null(since) ) d <- subset(d, date >= since)
   # mse value added
   print( sum ( (d$real - d$pyth)^2 ) )
@@ -179,7 +179,8 @@ comp_plot <- function ( x, real, pyth, since = NULL ) {
   melted <- melt(d, id.vars = "date")
   # ggplot
   p.tmp <- ggplot(melted, aes(x=date, y=value, group=variable)) 
-  p.tmp + geom_line(aes(colour=variable)) + xlab("Rate") + ylab("Date") + xlim(from,to) 
+  p.tmp <- p.tmp + geom_line(aes(colour=variable)) + xlab("Rate") + ylab("Date") + xlim(from,to) 
+  p.tmp
 }
 ## Multiple plot function
 #

@@ -54,19 +54,19 @@ pitcher_2014 <- subset(pitcher_select, year == 2014)
 pitcher_2014 <- pitcher_2014[ , ! colnames(pitcher_2014) %in% c("year") ]
 hitter_2014 <- subset(hitter_select, year == 2014)
 hitter_2014 <- hitter_2014[ , ! colnames(hitter_2014) %in% c("year") ]
-  
-########## 3. crawling personal daily data of all players in the list ############################
-### CAUTION: 
 
-teams <- levels(player_id$team)
-sapply( teams, crawl.loop, file = player_id, write.as.csv = F, pos = NULL)
-
-##################################################################################################
-########## 4. list of all games in 2015 season ###################################################
+########## 3. list of all games in 2015 season ###################################################
 
 month <- c("03","04","05","06","07","08","09")
 gamelist <- gamelist.total ( month, year = "2015" )
 games2015 <- subset ( gamelist, !is.na(score) ) # without cancelled games
+
+##################################################################################################
+########## 4. crawling personal daily data of all players in the list ############################
+### CAUTION: This procedure may take huge amount of time ( about 5 min. ) 
+
+teams <- levels(player_id$team)
+sapply( teams, crawl.loop, file = player_id, write.as.csv = F, pos = NULL)
 
 ##################################################################################################
 
