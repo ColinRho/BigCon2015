@@ -174,13 +174,13 @@ comp_plot <- function ( team, real, pyth, since = NULL ) {
   d <- data.frame(date = real$date, real = real[[team]], pyth = pyth[[team]])
   if ( !is.null(since) ) d <- subset(d, date >= since)
   # mse value added
-  print( sum ( (d$real - d$pyth)^2 ) )
+  print( mean ( (d$real - d$pyth)^2 ) )
   from <- min(d$date) ; to <- max(d$date)
   melted <- melt(d, id.vars = "date")
   # ggplot
   p.tmp <- ggplot(melted, aes(x=date, y=value, group=variable)) 
-  p.tmp <- p.tmp + geom_line(aes(colour=variable)) + xlab("Rate") + ylab("Date") + xlim(from,to) 
-  p.tmp
+  p.tmp <- p.tmp + geom_line(aes(colour=variable)) + xlab("Date") + ylab("Win_rate") + xlim(from,to) 
+  p.tmp + ggtitle(team)
 }
 ## Multiple plot function
 #
@@ -232,9 +232,10 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
 ########## 2. for regression approach  ###########################################################
 
 ## producing since vector
-get.since <- function( term1 ) {
+get.since <- function( term1, d_day = "2015-09-05" ) {
+  d_day <- as.Date(d_day)
   min.since <- opening[ format(opening, "%Y") == "2015"] - 1
-  max.since <- Sys.Date() - 22 - term1
+  max.since <- d_day - 22 - term1
   since <- min.since + 1:as.numeric(max.since - min.since)
   return(since)
 }
@@ -261,6 +262,8 @@ selectvar <- function( x, pos = "p" ) { # x should be object produced by get.per
   if ( pos == "p" ) {
     WHIP <- (x$HA + x$BBA + x$HBPA)/x$IP 
     LOBPER <- (x$HA + x$BBA + x$HBPA - x$RA)/(x$HA + x$BBA + x$HBPA -(1.4*x$HRA)) 
+    # excluding IP, RA
+    x <- x[ !(names(x) %in% c("IP", "RA")) ]
     v <- data.frame( x, WHIP, LOBPER )
   }
   # additional stats for hitters
@@ -268,6 +271,8 @@ selectvar <- function( x, pos = "p" ) { # x should be object produced by get.per
     SLG <- (x$H + 2*x$X2B + 3*x$X3B + 4*x$HR)/x$AB 
     OBP <- (x$H + x$BB + x$HBP)/(x$AB + x$BB + x$HBP) 
     SBPER <- x$SB/(x$SB + x$CS)
+    # excluding R
+    x <- x[ !(names(x) %in% c("R")) ]
     v <- data.frame( x, SLG, OBP, SBPER )
   }
   return(v)
@@ -319,6 +324,59 @@ mat_func <- function( team, pos, since, games, term1 = 20, term2 = 23) {
   mat <- myrbind(mat)
   return(mat)
 }
+## simple mse function
+mse <- function(x,y) { mean((x-y)^2) }
+## finding optiaml term1 minimizing mse, and save random forest fitted object
+term1.mse <- function( team, pos = "f", d_day = "2015-09-05", term_vector = 20:60 ) {
+  # temporary vector and list to save something
+  msee<-c() ; 
+  # object name which will contain rf fit object
+  if ( pos == "p") { obj <- paste("fit",team,"pit",sep="_") }
+  else { obj <- paste("fit",team,"hit",sep="_") }
+  # finding optimal term1 loop ( minimizing mse )
+  for(i in term_vector[1]:term_vector[length(term_vector)]) {
+    temp_term1 <- i
+    temp_since <- get.since(temp_term1, d_day)
+    temp_mat <- mat_func( team, pos, temp_since, games = games2015, temp_term1, term2 = 23 )
+    temp_fit <- randomForest( y~. , data = temp_mat, nodesize=nrow(temp_mat)*0.05, keep.forest=TRUE, ntree=500)
+    temp_pred <- predict(temp_fit, temp_mat, type="response")
+    msee <- c(msee, mse(temp_pred, temp_mat$y) )
+  }
+  # the best term1 and its mse
+  min.mse <- min(msee)
+  term1 <- term_vector[ which( msee == min.mse ) ] 
+  # desirable random forest fitting
+  since <- get.since(term1)
+  mat <- mat_func( team, pos, since, games = games2015, term1 = term1 )
+  fit <- randomForest( y ~ . , data = mat, nodesize=nrow(mat)*0.05, keep.forest=TRUE, ntree=500)
+  assign( obj, fit, envir = .GlobalEnv)
+  # plotting mse
+  plot( term_vector, msee, type="l", main = substr(obj, 5, nchar(obj)) )
+  v <- data.frame( term1, min.mse ) ; row.names(v) <- team
+  print( v )
+  # output 
+  res <- data.frame( mse = t(msee) , term1 = term1, row.names = team) 
+  return( res )
+}
+## making new since vector for test set
+test.x.since <- function( term1, d_day = "2015-09-05" ) { 
+  start_day <- max( get.since( term1 ) ) ; end_day <- as.Date(d_day) - term1 + 1
+  start_day + 1:as.numeric( end_day - start_day )
+}
+## testing after model made 
+test.result <- function ( team, pos, d_day,term1 ) {
+  # get fitted object ( random forest )
+  if ( pos == "p" ) { position <- "pit" }
+  else { position <- "hit"}
+  obj.name <- paste("fit", team, position, sep="_" )
+  obj <- get(obj.name, envir = .GlobalEnv)
+  # make x range for test set 
+  test.since <- test.x.since(term1, d_day = d_day)
+  df <- myrbind( lapply( test.since, team.period.stat, team = team, pos = pos, term = term1) )
+  fitted.y <- predict( obj, newdata = df)
+  return( data.frame( df, fitted.y ) )
+}
+
 
 ##################################################################################################
 
