@@ -13,9 +13,9 @@ library(cvTools)
 ## :gamelist, lineup, samename, player_id, trade_2015
 
 ## source function scripts 
-source("crawl_part.R")
+source("crawl_part.R",encoding="UTF-8")
 source("match_playerdata.R",encoding="UTF-8")
-source("modeling.R")
+source("modeling.R",encoding="UTF-8")
 
 ##################################################################################################
 ########## 1. reading csv files in the working directory #########################################
