@@ -9,7 +9,7 @@
   return( as.numeric(x) )
 }
 ## function to construct martirx of runs scored and runs allowed for each team from gameset$data_sourcing.R
-runs_by_team <- function ( team, games ) {
+runs_by_team <- function ( team , games ) {
   # subsetting by team name
   set <- subset( games, away==team | home==team )
   # arbitrary array
