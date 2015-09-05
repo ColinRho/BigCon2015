@@ -58,7 +58,8 @@ hitter_2014 <- hitter_2014[ , ! colnames(hitter_2014) %in% c("year") ]
 ########## 3. crawling personal daily data of all players in the list ############################
 ### CAUTION: 
 
-crawl.loop ( file = player_id, write.as.csv=F)
+teams <- levels(player_id$team)
+sapply( teams, crawl.loop, file = player_id, write.as.csv = F, pos = NULL)
 
 ##################################################################################################
 ########## 4. list of all games in 2015 season ###################################################

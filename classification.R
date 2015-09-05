@@ -1,5 +1,9 @@
 ########## Classification Approach  ##############################################################
 ##################################################################################################
+
+## loading data sets
+source("data_sourcing.R") 
+
 ## CAUTION: It takes huge loading time because of scraping every single games in the gamelist.
 ## stable network environment recommended, alternatively do it by monthly
 
