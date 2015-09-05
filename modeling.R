@@ -1,8 +1,7 @@
-#### 1. Pythagorean Expectation and Time Series Analysis
+## package "ggplot2", "reshape2", "cvTools", "randomForest" required  
+########## 1. Pythagorean Expectation and Time Series Analysis ###################################
+#### 1) win rate calculation functions
 
-####### functions ######################################################################
-
-#### 1. win rate calculation functions
 ## function to transform "score" into numeric vector with same order
 .score <- function( score ) {
   cha <- as.character( score )
@@ -143,11 +142,11 @@ pyth_real_mse <- function ( games, since = NULL, power = 2) {
   return(mse)
 }
 ## find the indices for each team which make mse b/w real rates and pyth rates
-pyth_index <- function ( since , games = gamse2015) {
+pyth_index <- function ( since , games = games2015) {
   # possible power index range
   pow <- seq(from=0.1, to=3, by=0.1)
   # mse b/w real rate and pyth rate
-  mses <- lapply( pow, pyth_real_mse, games = game, since = since)
+  mses <- lapply( pow, pyth_real_mse, games = games, since = since)
   find_index <- do.call(rbind, mses) ; row.names(find_index) <- pow
   indices <- c()
   # which minimize mse
@@ -158,7 +157,9 @@ pyth_index <- function ( since , games = gamse2015) {
   indices
 }
 
-#### 2. plotting functions 
+##################################################################################################
+#### 2) plotting functions 
+
 ## draw time series plot by ggplot
 rate_plot <- function ( x, since = NULL ) {
   if ( !is.null(since) ) x <- subset(x, date >= since)
@@ -180,14 +181,56 @@ comp_plot <- function ( x, real, pyth, since = NULL ) {
   p.tmp <- ggplot(melted, aes(x=date, y=value, group=variable)) 
   p.tmp + geom_line(aes(colour=variable)) + xlab("Rate") + ylab("Date") + xlim(from,to) 
 }
+## Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+# ### forked
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
 
-########################################################################################
+##################################################################################################
+########## 2. for regression approach  ###########################################################
 
-#### 2. Regression Setting 
-
-####### functions ######################################################################
-
-## producing since vecotr
+## producing since vector
 get.since <- function( term1 ) {
   min.since <- opening[ format(opening, "%Y") == "2015"] - 1
   max.since <- Sys.Date() - 22 - term1
@@ -249,11 +292,10 @@ team.period.stat <- function ( team , pos, since, term ) {
   return(y)
 }
 ## setting x and y variables to conduct regression analysis
-settingxy <- function ( team, pos, since, games, term1, term2  ) 
+settingxy <- function ( team, pos, since, games, term1, term2  ) {
   # term1 represents term to cumulate x variable( team stat ), 
   # term2 represnets term to cumulate y variable( team runs )
   # x should be prior to y in time manner
-{
   # time values
   x.since <- as.Date(since) ; x.cum.term <- x.since + (term1 - 1)
   y.since <- x.cum.term + 1 ; y.cum.term <- y.since + (term2 - 1)
@@ -277,5 +319,5 @@ mat_func <- function( team, pos, since, games, term1 = 20, term2 = 23) {
   return(mat)
 }
 
-########################################################################################
+##################################################################################################
 

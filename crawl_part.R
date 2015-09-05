@@ -1,5 +1,6 @@
 ## package "XML", "rvest", "data.table" required  
-########## tiny functions make calculation easier ################################################
+########## 0. tiny functions make calculation easier #############################################
+
 ## a function that combining rbindlist() and as.data.frame()
 myrbind <- function( list, use.names = fill, fill = FALSE ) {
   l <- rbindlist(list, use.names = fill, fill = FALSE)
@@ -9,10 +10,11 @@ myrbind <- function( list, use.names = fill, fill = FALSE ) {
 convert.numeric <- function ( x ) {
   return(as.numeric( as.character (x) ))
 }
+
 ##################################################################################################
+########## 1. scraping player data ###############################################################
 
-
-## converting IP variable of pitchers into numeric typt
+## converting IP variable of pitchers into numeric type
 convert.IP <- function ( IP ) {
   IP <- as.character(IP)
   # dividing integer part and fraction part
@@ -51,7 +53,7 @@ crawl.read <- function (row.player) {
   cat("Data set of",player,"is being read","\n") 
   return(a)
 }
-## 크롤링 데이터를 data.frame으로 정리하는 함수
+## a function transfering crawled data into data.frame
 crawl.mod <- function(row.player) {
   a <- crawl.read(row.player)
   for (i in 1:length(a)) {
@@ -117,11 +119,11 @@ crawl.loop <- function(file=player_id, team=NULL, pos=NULL, write.as.csv=F) {
   }
 }
 
-
 ## In case of no data "---" changes into NA with Warning message, but output is ok.
 
+##################################################################################################
+########## 2. loading total match-up #############################################################
 
-## a stage loading total match-up 
 ## http://sports.news.naver.com/schedule/index.nhn?uCategory=&category=kbo&year=2015&month=07&teamCode=&date=20150816
 ## a function generating match-up and score vector by scraping "NAVER SPORTS"
 gamelist.match <- function ( matchup ) { # 한 경기씩
@@ -225,10 +227,10 @@ gamelist.total <- function( month, year="2015" ) {
   return(bs)
 }
 
+##################################################################################################
+########## 3. loading starting lineup of each match-up ###########################################
 
-## a stage loading starting lineup of each match-up
 ## http://www.koreabaseball.com/Schedule/Game/BoxScore.aspx?leagueId=1&seriesId=0&gameId=20150801LGSK0&gyear=2015
-
 ## a function changing team code according to KBO url
 team.code <- function ( x ) { # x: single character
   if ( x == "삼성") { y <- "SS"}
@@ -347,3 +349,4 @@ lineup.total <- function( x, by.month=NULL ) { # x should be gamelist, use by.mo
   return(lineup)
 }
 
+##################################################################################################

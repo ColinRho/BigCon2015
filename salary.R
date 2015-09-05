@@ -16,12 +16,11 @@ crawl.salary <- function (row.player) {
 }
 salary <- c()
 
-crawl.salary(player_id)
 for ( i in 1:nrow(player_id) ) {
   salary[i] <- crawl.salary(player_id[i,])
 }
 
 player_id_mod <- data.frame(player_id, salary)
-write.csv(player_id_mod, "player_id.csv")
+write.csv(player_id_mod, "player_id.csv", row.names = F)
 
 

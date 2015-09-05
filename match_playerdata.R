@@ -1,37 +1,37 @@
 ## package "plyr" required  
 
-## 동명이인 추출하는 함수(데이터 소스의 가장 첫단계에서 필요)
+##################################################################################################
+## extracting homonyms ( needed in the first stage of data_sourcing.R )
 homonym <- function( player_id ) {
-  # 동명이인들의 이름
-  # 동명이인들만을 추출
+  # extract duplicated names
   whosame <- player_id[ (duplicated(player_id$name) | duplicated(player_id$name, fromLast=T)), ]
   samename <- unique(whosame$name)
-  # 이름에 팀 코드를 붙여서 동명이인을 구분
+  # distinguish homonyms by adding team code after name 
   code <- sapply(as.character(whosame$team), team.code)
   whosame$name <- paste(whosame$name, code, sep="")
-  # 변경된 데이터를 결합, 팀별로 sorting
+  # combining, sorting as team
   dat <- rbind( subset( player_id, !(name %in% samename) ), whosame )
   dat <- arrange( dat, team )
-  # 변경된 데이터셋과 동명이인의 목록을 리스트로 함께 출력
+  # print changed data set and list of homonyms
   res <- list(dat=dat, samename=samename)
   return(res)
 }
-## 동명이인인 선수들의 이름을 바꾸는 함수(동명이인 목록 필요함)
-change.homonym <- function( x, team ) { # x는 각 팀별 라인업에 있는 선수들 벡터, team은 해당 팀명
+## a function changing players who have same name ( homonyme list, 'samename' needed )
+change.homonym <- function( x, team ) { # x should be a vector in lineup of each team
   x <- as.matrix(x)
-  # 동명이인 없음
+  # no homonyms
   if ( sum(x %in% samename) == 0 ) { return(x) }
   else {
-    # 동명이인 리스트에 있는 선수들
+    # players in the list of homonyms
     target <- x[which(x %in% samename)]
-    # 팀 코드를 붙여서 출력
+    # print after paste team code
     code <- team.code(team) 
     x[which(x %in% samename)] <- paste(target,code,sep="")
     return(x)  
   }
 }
-## 각 경기의 양팀 라인업을 불러오는 함수
-get.lineup <- function( game ) { # game은 gamelist의 한 row벡터
+## a function loading lineup of teams for each games
+get.lineup <- function( game ) { # game is one row vecotr of gamelist
   d <- as.character( game$date )
   aw <- as.character(game$away) ; ho <- as.character(game$home)
   mat <- subset(lineup, date == d & ( team == aw | team == ho  ) )
@@ -120,20 +120,20 @@ get.player.stat <- function ( game ) {
   return(res)
 }
 
-######### 데이터가 없는 경우에 해당 row를 0으로 채우게 된다
+######### fill-in '0' for particular row with no data 
 
-## 승패 계산 함수
-winlose <- function ( game, team ) { # gamelist의 각 row를 input으로
+## a function calculating win rate
+winlose <- function ( game, team ) { # each row of gamelist as input
   splscore <- unlist(strsplit(as.character(game$score), ":" ))
-  # 무승부
+  # draw
   score_away <- as.numeric( splscore[1] ) ; score_home <- as.numeric( splscore[2] ) 
   if ( score_away == score_home ) { return(NA) }
-  # 원정일 경우
+  # away
   if (team == game$away) {
     if ( score_away < score_home ) { result <- 0 }
     else { result <- 1 }
   }
-  # 홈일 경우
+  # home
   else if (team == game$home) {
     if ( score_away > score_home ) { result <- 0 }
     else  { result <- 1 }
@@ -265,3 +265,4 @@ aggr.stat <- function( gameset, w, div=F) {
   return( myrbind(l) )
 }
 
+##################################################################################################
